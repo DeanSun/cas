@@ -5,12 +5,12 @@ import org.apereo.cas.validation.AuthenticationPolicyAwareServiceTicketValidatio
 import org.apereo.cas.validation.Cas10ProtocolValidationSpecificationTests;
 import org.apereo.cas.validation.Cas20ProtocolValidationSpecificationTests;
 import org.apereo.cas.validation.Cas20WithoutProxyingValidationSpecificationTests;
+import org.apereo.cas.validation.CasProtocolVersionValidationSpecificationTests;
 import org.apereo.cas.validation.ChainingCasProtocolValidationSpecificationTests;
 import org.apereo.cas.validation.ImmutableAssertionTests;
 
-import org.junit.platform.runner.JUnitPlatform;
 import org.junit.platform.suite.api.SelectClasses;
-import org.junit.runner.RunWith;
+import org.junit.platform.suite.api.Suite;
 
 /**
  * This is {@link AllTestsSuite}.
@@ -21,11 +21,12 @@ import org.junit.runner.RunWith;
 @SelectClasses({
     Cas20ProtocolValidationSpecificationTests.class,
     ImmutableAssertionTests.class,
+    CasProtocolVersionValidationSpecificationTests.class,
     ChainingCasProtocolValidationSpecificationTests.class,
     AuthenticationPolicyAwareServiceTicketValidationAuthorizerTests.class,
     Cas10ProtocolValidationSpecificationTests.class,
     Cas20WithoutProxyingValidationSpecificationTests.class
 })
-@RunWith(JUnitPlatform.class)
+@Suite
 public class AllTestsSuite {
 }

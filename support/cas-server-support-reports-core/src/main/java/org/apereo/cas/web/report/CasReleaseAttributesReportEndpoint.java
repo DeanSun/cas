@@ -8,12 +8,15 @@ import org.apereo.cas.authentication.principal.PrincipalFactory;
 import org.apereo.cas.authentication.principal.ServiceFactory;
 import org.apereo.cas.authentication.principal.WebApplicationService;
 import org.apereo.cas.configuration.CasConfigurationProperties;
+import org.apereo.cas.services.RegisteredServiceAttributeReleasePolicyContext;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.validation.DefaultAssertionBuilder;
 import org.apereo.cas.validation.ImmutableAssertion;
 import org.apereo.cas.web.BaseCasActuatorEndpoint;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import lombok.val;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
@@ -31,8 +34,11 @@ import java.util.Map;
 @Endpoint(id = "releaseAttributes", enableByDefault = false)
 public class CasReleaseAttributesReportEndpoint extends BaseCasActuatorEndpoint {
     private final ServicesManager servicesManager;
+
     private final AuthenticationSystemSupport authenticationSystemSupport;
+
     private final ServiceFactory<WebApplicationService> serviceFactory;
+
     private final PrincipalFactory principalFactory;
 
     public CasReleaseAttributesReportEndpoint(final CasConfigurationProperties casProperties,
@@ -56,6 +62,12 @@ public class CasReleaseAttributesReportEndpoint extends BaseCasActuatorEndpoint 
      * @return the map
      */
     @ReadOperation
+    @Operation(summary = "Get collection of released attributes for the user and application",
+        parameters = {
+            @Parameter(name = "username", required = true),
+            @Parameter(name = "password", required = true),
+            @Parameter(name = "service", required = true)
+        })
     public Map<String, Object> releasePrincipalAttributes(final String username,
                                                           final String password,
                                                           final String service) {
@@ -65,24 +77,32 @@ public class CasReleaseAttributesReportEndpoint extends BaseCasActuatorEndpoint 
         val registeredService = this.servicesManager.findServiceBy(selectedService);
 
         val credential = new UsernamePasswordCredential(username, password);
-        val result = this.authenticationSystemSupport.handleAndFinalizeSingleAuthenticationTransaction(selectedService, credential);
+        val result = this.authenticationSystemSupport.finalizeAuthenticationTransaction(selectedService, credential);
         val authentication = result.getAuthentication();
 
         val principal = authentication.getPrincipal();
-        val attributesToRelease = registeredService.getAttributeReleasePolicy().getAttributes(principal, selectedService, registeredService);
+        val context = RegisteredServiceAttributeReleasePolicyContext.builder()
+            .registeredService(registeredService)
+            .service(selectedService)
+            .principal(principal)
+            .build();
+        val attributesToRelease = registeredService.getAttributeReleasePolicy().getAttributes(context);
         val builder = DefaultAuthenticationBuilder.of(
-                principal,
-                this.principalFactory,
-                attributesToRelease,
-                selectedService,
-                registeredService,
-                authentication);
+            principal,
+            this.principalFactory,
+            attributesToRelease,
+            selectedService,
+            registeredService,
+            authentication);
 
         val finalAuthentication = builder.build();
-        val assertion = new DefaultAssertionBuilder(finalAuthentication)
-            .with(selectedService)
-            .with(CollectionUtils.wrap(finalAuthentication))
-            .build();
+        val assertion = DefaultAssertionBuilder.builder()
+            .primaryAuthentication(finalAuthentication)
+            .service(selectedService)
+            .authentications(CollectionUtils.wrap(finalAuthentication))
+            .registeredService(registeredService)
+            .build()
+            .assemble();
 
         val resValidation = new LinkedHashMap<String, Object>();
         resValidation.put(CasViewConstants.MODEL_ATTRIBUTE_NAME_ASSERTION, assertion);
@@ -98,15 +118,21 @@ public class CasReleaseAttributesReportEndpoint extends BaseCasActuatorEndpoint 
      *
      * @param username - the username
      * @param password - the password
-     * @param service - the service id
+     * @param service  - the service id
      * @return - the map
      */
     @WriteOperation
+    @Operation(summary = "Get collection of released attributes for the user and application",
+        parameters = {
+            @Parameter(name = "username", required = true),
+            @Parameter(name = "password", required = true),
+            @Parameter(name = "service", required = true)
+        })
     public Map<String, Object> releaseAttributes(final String username,
                                                  final String password,
                                                  final String service) {
         val map = releasePrincipalAttributes(username, password, service);
         val assertion = (ImmutableAssertion) map.get("assertion");
-        return Map.of("uid", username, "attributes", assertion.getPrimaryAuthentication().getPrincipal().getAttributes());
+        return Map.of("uid", username, "attributes", assertion.primaryAuthentication().getPrincipal().getAttributes());
     }
 }

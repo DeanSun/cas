@@ -1,5 +1,7 @@
 package org.apereo.cas.redis;
 
+import org.apereo.cas.authentication.CasSSLContext;
+import org.apereo.cas.authentication.principal.PrincipalResolver;
 import org.apereo.cas.config.CasAuthenticationEventExecutionPlanTestConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationPrincipalConfiguration;
@@ -23,7 +25,7 @@ import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 import org.apereo.cas.redis.core.RedisObjectFactory;
 import org.apereo.cas.util.CollectionUtils;
-import org.apereo.cas.util.junit.EnabledIfPortOpen;
+import org.apereo.cas.util.junit.EnabledIfListeningOnPort;
 
 import lombok.val;
 import org.apereo.services.persondir.IPersonAttributeDao;
@@ -50,7 +52,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 6.1.0
  */
 @Tag("Redis")
-@EnabledIfPortOpen(port = 6379)
+@EnabledIfListeningOnPort(port = 6379)
 @SpringBootTest(classes = {
     RefreshAutoConfiguration.class,
     RedisAuthenticationConfiguration.class,
@@ -83,7 +85,7 @@ public class RedisPersonAttributeDaoTests {
     private static final String USER_ID = UUID.randomUUID().toString();
 
     @Autowired
-    @Qualifier("attributeRepository")
+    @Qualifier(PrincipalResolver.BEAN_NAME_ATTRIBUTE_REPOSITORY)
     private IPersonAttributeDao attributeRepository;
 
     @Autowired
@@ -92,9 +94,9 @@ public class RedisPersonAttributeDaoTests {
     @BeforeEach
     public void initialize() {
         val redis = casProperties.getAuthn().getAttributeRepository().getRedis().get(0);
-        val conn = RedisObjectFactory.newRedisConnectionFactory(redis, true);
+        val conn = RedisObjectFactory.newRedisConnectionFactory(redis, true, CasSSLContext.disabled());
         val template = RedisObjectFactory.newRedisTemplate(conn);
-        template.afterPropertiesSet();
+        template.initialize();
         val attr = new HashMap<String, List<Object>>();
         attr.put("name", CollectionUtils.wrapList("John", "Jon"));
         attr.put("age", CollectionUtils.wrapList("42"));

@@ -7,6 +7,8 @@ import lombok.val;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.io.Serial;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -15,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.1.0
  */
-@Tag("Simple")
+@Tag("ExpirationPolicy")
 public class SurrogateSessionExpirationPolicyJsonSerializerTests {
     @Test
     public void verifyOperation() {
@@ -29,6 +31,7 @@ public class SurrogateSessionExpirationPolicyJsonSerializerTests {
     }
 
     private static class SurrogateSessionExpirationPolicyJsonSerializer extends AbstractJacksonBackedStringSerializer<ExpirationPolicy> {
+        @Serial
         private static final long serialVersionUID = -7883370764375218898L;
 
         @Override

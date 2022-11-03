@@ -1,15 +1,16 @@
 package org.apereo.cas.config;
 
 import org.apereo.cas.MongoDbPropertySourceLocator;
-import org.apereo.cas.util.LoggingUtils;
+import org.apereo.cas.configuration.features.CasFeatureModule;
+import org.apereo.cas.util.spring.boot.ConditionalOnFeatureEnabled;
 
-import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.cloud.bootstrap.config.PropertySourceLocator;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
 
@@ -21,36 +22,24 @@ import java.util.Objects;
  * @author Misagh Moayyed
  * @since 5.0.0
  */
-@Slf4j
-@Configuration("mongoDbCloudConfigBootstrapConfiguration")
+@ConditionalOnFeatureEnabled(feature = CasFeatureModule.FeatureCatalog.CasConfiguration, module = "mongo")
+@AutoConfiguration
 public class MongoDbCloudConfigBootstrapConfiguration {
     /**
-     * MongoDb CAS configuration key prefix.
+     * MongoDb CAS configuration key URI.
      */
     public static final String CAS_CONFIGURATION_MONGODB_URI = "cas.spring.cloud.mongo.uri";
 
-    @Autowired
-    private ConfigurableEnvironment environment;
-
     @Bean
-    public MongoDbPropertySourceLocator mongoDbPropertySourceLocator() {
-        try {
-            val mongoTemplate = mongoDbCloudConfigurationTemplate();
-            return new MongoDbPropertySourceLocator(mongoTemplate);
-        } catch (final Exception e) {
-            LoggingUtils.error(LOGGER, e);
-            throw new BeanCreationException("mongoDbPropertySourceLocator", e.getMessage(), e);
-        }
+    public PropertySourceLocator mongoDbPropertySourceLocator(
+        @Qualifier("mongoDbCloudConfigurationTemplate")
+        final MongoOperations mongoDbCloudConfigurationTemplate) {
+        return new MongoDbPropertySourceLocator(mongoDbCloudConfigurationTemplate);
     }
 
     @Bean
-    public MongoTemplate mongoDbCloudConfigurationTemplate() {
-        try {
-            val uri = Objects.requireNonNull(environment.getProperty(CAS_CONFIGURATION_MONGODB_URI));
-            return new MongoTemplate(new SimpleMongoClientDatabaseFactory(uri));
-        } catch (final Exception e) {
-            LoggingUtils.error(LOGGER, e);
-            throw new BeanCreationException("mongoDbCloudConfigurationTemplate", e.getMessage(), e);
-        }
+    public MongoOperations mongoDbCloudConfigurationTemplate(final ConfigurableEnvironment environment) {
+        val uri = Objects.requireNonNull(environment.getProperty(CAS_CONFIGURATION_MONGODB_URI));
+        return new MongoTemplate(new SimpleMongoClientDatabaseFactory(uri));
     }
 }

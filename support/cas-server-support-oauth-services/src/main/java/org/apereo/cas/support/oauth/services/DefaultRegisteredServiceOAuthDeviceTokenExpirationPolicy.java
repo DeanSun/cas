@@ -8,6 +8,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.experimental.Accessors;
+
+import java.io.Serial;
 
 /**
  * This is {@link DefaultRegisteredServiceOAuthDeviceTokenExpirationPolicy}.
@@ -22,8 +25,10 @@ import lombok.ToString;
 @NoArgsConstructor
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 @ToString
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@Accessors(chain = true)
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public class DefaultRegisteredServiceOAuthDeviceTokenExpirationPolicy implements RegisteredServiceOAuthDeviceTokenExpirationPolicy {
+    @Serial
     private static final long serialVersionUID = 2146436756392637728L;
 
     private String timeToKill;

@@ -5,7 +5,7 @@ dependencies {
     implementation libraries.jose4j
     
     api project(":api:cas-server-core-api-webflow")
-    
+
     implementation project(":core:cas-server-core-webflow")
     implementation project(":core:cas-server-core-webflow-api")
     implementation project(":core:cas-server-core-webflow-mfa")
@@ -24,6 +24,8 @@ dependencies {
     implementation project(":support:cas-server-support-oauth-core")
     implementation project(":support:cas-server-support-oauth-api")
     implementation project(":support:cas-server-support-oauth-services")
+    implementation project(":support:cas-server-support-actions")
+    implementation project(":support:cas-server-support-actions-core")
 
     testImplementation project(":support:cas-server-support-themes")
     testImplementation project(":support:cas-server-support-thymeleaf")
@@ -48,5 +50,6 @@ dependencies {
     testImplementation project(path: ":core:cas-server-core-util-api", configuration: "tests")
     testImplementation project(path: ":core:cas-server-core-authentication", configuration: "tests")
     testImplementation project(path: ":core:cas-server-core-services", configuration: "tests")
+    testImplementation project(path: ":core:cas-server-core-tickets", configuration: "tests")
 
 }

@@ -27,7 +27,7 @@ import static org.mockito.Mockito.*;
  * @author Misagh Moayyed
  * @since 6.3.0
  */
-@Tag("Webflow")
+@Tag("WebflowMfaActions")
 public class OneTimeTokenAccountConfirmSelectionRegistrationActionTests {
 
     @Test

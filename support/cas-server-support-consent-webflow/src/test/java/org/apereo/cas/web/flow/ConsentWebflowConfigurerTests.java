@@ -19,10 +19,9 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @Import({
     CasConsentCoreConfiguration.class,
-    CasConsentWebflowConfiguration.class,
-    BaseWebflowConfigurerTests.SharedTestConfiguration.class
+    CasConsentWebflowConfiguration.class
 })
-@Tag("Webflow")
+@Tag("WebflowConfig")
 public class ConsentWebflowConfigurerTests extends BaseWebflowConfigurerTests {
     @Test
     public void verifyOperation() {

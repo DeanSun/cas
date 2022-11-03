@@ -11,6 +11,7 @@ import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.Serial;
 import java.util.Collections;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -24,10 +25,13 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public class HttpRequestMultifactorAuthenticationProviderBypassEvaluator extends BaseMultifactorAuthenticationProviderBypassEvaluator {
+    @Serial
     private static final long serialVersionUID = -7553981418344342672L;
 
     private final MultifactorAuthenticationProviderBypassProperties bypassProperties;
+
     private final Pattern httpRequestRemoteAddressPattern;
+
     private final Set<Pattern> httpRequestHeaderPatterns;
 
     public HttpRequestMultifactorAuthenticationProviderBypassEvaluator(final MultifactorAuthenticationProviderBypassProperties bypassProperties,
@@ -46,9 +50,9 @@ public class HttpRequestMultifactorAuthenticationProviderBypassEvaluator extends
 
     @Override
     public boolean shouldMultifactorAuthenticationProviderExecuteInternal(final Authentication authentication,
-                                                                  final RegisteredService registeredService,
-                                                                  final MultifactorAuthenticationProvider provider,
-                                                                  final HttpServletRequest request) {
+                                                                          final RegisteredService registeredService,
+                                                                          final MultifactorAuthenticationProvider provider,
+                                                                          final HttpServletRequest request) {
         val principal = authentication.getPrincipal();
         val bypassByHttpRequest = locateMatchingHttpRequest(authentication, request);
         if (bypassByHttpRequest) {

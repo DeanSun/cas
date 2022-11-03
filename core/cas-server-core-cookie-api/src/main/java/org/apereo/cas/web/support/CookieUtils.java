@@ -5,6 +5,7 @@ import org.apereo.cas.configuration.model.support.cookie.TicketGrantingCookiePro
 import org.apereo.cas.configuration.support.Beans;
 import org.apereo.cas.ticket.TicketGrantingTicket;
 import org.apereo.cas.ticket.registry.TicketRegistry;
+import org.apereo.cas.util.function.FunctionUtils;
 import org.apereo.cas.web.cookie.CasCookieBuilder;
 import org.apereo.cas.web.cookie.CookieGenerationContext;
 import org.apereo.cas.web.support.gen.CookieRetrievingCookieGenerator;
@@ -47,13 +48,14 @@ public class CookieUtils {
      * @return the ticket granting ticket from request
      */
     public static TicketGrantingTicket getTicketGrantingTicketFromRequest(final CasCookieBuilder ticketGrantingTicketCookieGenerator,
-                                                                          final TicketRegistry ticketRegistry, final HttpServletRequest request) {
+                                                                          final TicketRegistry ticketRegistry,
+                                                                          final HttpServletRequest request) {
         val cookieValue = ticketGrantingTicketCookieGenerator.retrieveCookieValue(request);
         if (StringUtils.isNotBlank(cookieValue)) {
-            val tgt = ticketRegistry.getTicket(cookieValue, TicketGrantingTicket.class);
-            if (tgt != null && !tgt.isExpired()) {
-                return tgt;
-            }
+            return FunctionUtils.doAndHandle(() -> {
+                val state = ticketRegistry.getTicket(cookieValue, TicketGrantingTicket.class);
+                return state == null || state.isExpired() ? null : state;
+            });
         }
         return null;
     }
@@ -84,7 +86,7 @@ public class CookieUtils {
     }
 
     /**
-     * Build cookie generation context cookie.
+     * Build cookie generation context.
      *
      * @param cookie the cookie
      * @return the cookie generation context
@@ -95,7 +97,8 @@ public class CookieUtils {
         return builder.rememberMeMaxAge(rememberMeMaxAge).build();
     }
 
-    private static CookieGenerationContext.CookieGenerationContextBuilder buildCookieGenerationContextBuilder(final CookieProperties cookie) {
+    private static CookieGenerationContext.CookieGenerationContextBuilder buildCookieGenerationContextBuilder(
+        final CookieProperties cookie) {
         return CookieGenerationContext.builder()
             .name(cookie.getName())
             .path(StringUtils.defaultString(cookie.getPath(), "/"))

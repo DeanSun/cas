@@ -3,10 +3,10 @@ package org.apereo.cas.authentication.credential;
 import lombok.val;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 import org.springframework.binding.message.MessageContext;
 import org.springframework.binding.validation.ValidationContext;
 
+import java.io.Serial;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,13 +35,14 @@ public class CredentialTests {
         assertNotNull(c1.getCredentialClass());
         assertTrue(c1.isValid());
         assertTrue(Math.abs(c1.hashCode()) > 0);
-        assertFalse(c1.equals(c2));
-        assertTrue(c1.equals(c1));
+        assertNotEquals(c2, c1);
+        assertEquals(c1, c1);
     }
 
     @Test
     public void verifyValid() {
         val c = new AbstractCredential() {
+            @Serial
             private static final long serialVersionUID = -1746359565306558329L;
 
             @Override
@@ -51,16 +52,12 @@ public class CredentialTests {
         };
         val context = mock(ValidationContext.class);
         when(context.getMessageContext()).thenReturn(mock(MessageContext.class));
-        assertDoesNotThrow(new Executable() {
-            @Override
-            public void execute() {
-                c.validate(context);
-            }
-        });
+        assertDoesNotThrow(() -> c.validate(context));
     }
 
-    private AbstractCredential getCredential() {
+    private static AbstractCredential getCredential() {
         return new AbstractCredential() {
+            @Serial
             private static final long serialVersionUID = -1746359565306558329L;
 
             @Override

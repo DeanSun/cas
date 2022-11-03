@@ -2,9 +2,11 @@ package org.apereo.cas.ticket.factory;
 
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.configuration.support.Beans;
+import org.apereo.cas.services.CasModelRegisteredService;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.ticket.ExpirationPolicy;
 import org.apereo.cas.ticket.ExpirationPolicyBuilder;
+import org.apereo.cas.ticket.ServiceTicketSessionTrackingPolicy;
 import org.apereo.cas.ticket.Ticket;
 import org.apereo.cas.ticket.UniqueTicketIdGenerator;
 import org.apereo.cas.ticket.expiration.MultiTimeUseOrTimeoutExpirationPolicy;
@@ -39,7 +41,7 @@ public class DefaultProxyTicketFactory implements ProxyTicketFactory {
 
     private final CipherExecutor<String, String> cipherExecutor;
 
-    private final boolean onlyTrackMostRecentSession;
+    private final ServiceTicketSessionTrackingPolicy serviceTicketSessionTrackingPolicy;
 
     private final ServicesManager servicesManager;
 
@@ -51,7 +53,7 @@ public class DefaultProxyTicketFactory implements ProxyTicketFactory {
     }
 
     private ExpirationPolicy determineExpirationPolicyForService(final Service service) {
-        val registeredService = servicesManager.findServiceBy(service);
+        val registeredService = servicesManager.findServiceBy(service, CasModelRegisteredService.class);
         if (registeredService != null && registeredService.getProxyTicketExpirationPolicy() != null) {
             val policy = registeredService.getProxyTicketExpirationPolicy();
             val count = policy.getNumberOfUses();
@@ -61,7 +63,7 @@ public class DefaultProxyTicketFactory implements ProxyTicketFactory {
                     Beans.newDuration(ttl).getSeconds());
             }
         }
-        return this.proxyTicketExpirationPolicy.buildTicketExpirationPolicy();
+        return proxyTicketExpirationPolicy.buildTicketExpirationPolicy();
     }
 
     /**
@@ -82,12 +84,12 @@ public class DefaultProxyTicketFactory implements ProxyTicketFactory {
             ticketId,
             service,
             expirationPolicyToUse,
-            this.onlyTrackMostRecentSession);
+            serviceTicketSessionTrackingPolicy);
 
         if (!clazz.isAssignableFrom(result.getClass())) {
             throw new ClassCastException("Result [" + result
-                + " is of type " + result.getClass()
-                + " when we were expecting " + clazz);
+                                         + " is of type " + result.getClass()
+                                         + " when we were expecting " + clazz);
         }
         return (T) result;
     }

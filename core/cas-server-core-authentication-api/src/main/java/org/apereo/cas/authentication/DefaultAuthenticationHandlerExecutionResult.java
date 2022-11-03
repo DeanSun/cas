@@ -2,6 +2,7 @@ package org.apereo.cas.authentication;
 
 import org.apereo.cas.authentication.principal.Principal;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -11,6 +12,7 @@ import lombok.Setter;
 import lombok.ToString;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,9 +32,7 @@ import java.util.List;
 @AllArgsConstructor
 public class DefaultAuthenticationHandlerExecutionResult implements AuthenticationHandlerExecutionResult {
 
-    /**
-     * Serialization support.
-     */
+    @Serial
     private static final long serialVersionUID = -3113998493287982485L;
 
     /**
@@ -77,12 +77,14 @@ public class DefaultAuthenticationHandlerExecutionResult implements Authenticati
     }
 
     @Override
+    @CanIgnoreReturnValue
     public AuthenticationHandlerExecutionResult addWarning(final MessageDescriptor message) {
         this.warnings.add(message);
         return this;
     }
 
     @Override
+    @CanIgnoreReturnValue
     public AuthenticationHandlerExecutionResult clearWarnings() {
         this.warnings.clear();
         return this;

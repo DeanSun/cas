@@ -3,6 +3,8 @@ layout: default
 title: CAS - Troubleshooting Guide
 category: Installation
 ---
+{% include variables.html %}
+
 
 # Troubleshooting Guide
 
@@ -14,10 +16,10 @@ CAS server logs are the best resource for determining the root cause of the prob
 Specifically you want to make sure `DEBUG` levels are turned on the `org.apereo` package in the log configuration:
 
 ```xml
-<AsyncLogger name="org.apereo" level="trace" additivity="false" includeLocation="true">
+<Logger name="org.apereo.cas" level="trace" additivity="false" includeLocation="true">
     <AppenderRef ref="console"/>
     <AppenderRef ref="file"/>
-</AsyncLogger>
+</Logger>
 ```
 
 When changes are applied, restart the server environment and observe the log files to get a better 
@@ -31,7 +33,7 @@ If your container of choice is [Apache Tomcat](https://tomcat.apache.org/tomcat-
 you may also want to look into your `catalina.out`
 and `localhost-X-Y-Z.log` log files to learn more about source of issues. 
 
-## Deployment Problem; X Configuration Issue. Can You Help?
+## Deployment Problem; Configuration Issue X. Can You Help?
 
 [Study this](#review-logs).
 
@@ -41,14 +43,28 @@ If you have a question about tuning and configuration of external components uti
 and you have a need to achieve more advanced use cases other than what the CAS defaults offer, your question is best
 addressed by the community in charge of that component's development and support. As a general rule,
 you should always pick a technology with which you are most familiar, or otherwise, shoot a question to
-the Spring Webflow, MongoDb, Hazelcast, etc forums to have experts review and recommend ideas.
+the Spring Webflow, MongoDb, Hazelcast, Redis, etc forums to have experts review and recommend ideas.
 
 Typical questions in this category that are best answered elsewhere are:
-
-- How do I configure SSL for Apache Tomcat, Jetty, etc?
+                           
+- How do I change TLS version from `A` to `B`?
+- Why does Azure/AWS/GCP work this way? 
+- How do I configure SSL for Apache Tomcat, Jetty, Active Directory, etc?
 - How do I pass variables from one flow to the next in Spring webflow?
 - How do I tune up a hazelcast cluster?
+- Can you explain the steps needed to configure Redis Sentinel? 
 - What is the recommended strategy for making MongoDb highly available? 
+ 
+## Try Latest Patch Release
+  
+It is quite possible that the problem you are trying to resolve has already been solved by the next patch release.
+A patch release is a conservative incremental improvement that includes bug fixes and small enhancements and 
+is absolutely backward compatible with previous PATCH releases of the same MINOR release. For example, if you are currently
+on CAS version `6.5.1` and have run into a possible issue, you should consider upgrading to `6.5.2`, and 6.5.3` and so on
+to investigate further, assuming releases are of course available and published.
+
+The project release schedule is [available here](https://github.com/apereo/cas/milestones), and you can always
+have a look at [published releases](https://github.com/apereo/cas/releases).
 
 ## Using `SNAPSHOT` Versions
 
@@ -111,7 +127,7 @@ java.lang.OutOfMemoryError: GC overhead limit exceeded
         at 
 ```
 
-You may encounter this error, when in all likelihood, a cache-based ticket registry such as EhCache is used whose eviction policy 
+You may encounter this error, when in all likelihood, a cache-based ticket registry such as Hazelcast is used whose eviction policy 
 is not correctly configured. Objects and tickets are cached inside the registry storage back-end tend to linger around longer than 
 they should or the eviction policy is not doing a good enough job to clean unused tickets that may be marked as expired by CAS. 
 

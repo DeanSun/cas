@@ -3,6 +3,7 @@ package org.apereo.cas.web.flow.resolver.impl;
 import org.apereo.cas.BaseCasWebflowMultifactorAuthenticationTests;
 import org.apereo.cas.CasProtocolConstants;
 import org.apereo.cas.mock.MockTicketGrantingTicket;
+import org.apereo.cas.services.DefaultRegisteredServiceAccessStrategy;
 import org.apereo.cas.services.RegisteredServiceTestUtils;
 import org.apereo.cas.web.flow.CasWebflowConstants;
 import org.apereo.cas.web.flow.resolver.CasWebflowEventResolver;
@@ -22,6 +23,8 @@ import org.springframework.webflow.context.servlet.ServletExternalContext;
 import org.springframework.webflow.execution.RequestContextHolder;
 import org.springframework.webflow.test.MockRequestContext;
 
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -30,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.3.0
  */
-@Tag("Webflow")
+@Tag("WebflowEvents")
 public class ServiceTicketRequestWebflowEventResolverTests extends BaseCasWebflowMultifactorAuthenticationTests {
     @Autowired
     @Qualifier("serviceTicketRequestWebflowEventResolver")
@@ -39,6 +42,29 @@ public class ServiceTicketRequestWebflowEventResolverTests extends BaseCasWebflo
     @BeforeEach
     public void beforeEach() {
         servicesManager.deleteAll();
+    }
+
+    @Test
+    public void verifyAttemptWithoutCredential() throws Exception {
+        val context = new MockRequestContext();
+
+        val request = new MockHttpServletRequest();
+
+        val response = new MockHttpServletResponse();
+        context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, response));
+        RequestContextHolder.setRequestContext(context);
+        ExternalContextHolder.setExternalContext(context.getExternalContext());
+
+        val tgt = new MockTicketGrantingTicket("casuser");
+        ticketRegistry.addTicket(tgt);
+
+        val service = RegisteredServiceTestUtils.getService("service-ticket-request");
+        val registeredService = RegisteredServiceTestUtils.getRegisteredService(service.getId(), Map.of());
+        servicesManager.save(registeredService);
+        WebUtils.putTicketGrantingTicketInScopes(context, tgt);
+        WebUtils.putServiceIntoFlowScope(context, service);
+        val event = serviceTicketRequestWebflowEventResolver.resolveSingle(context);
+        assertEquals(CasWebflowConstants.TRANSITION_ID_GENERATE_SERVICE_TICKET, event.getId());
     }
 
     @Test
@@ -65,7 +91,75 @@ public class ServiceTicketRequestWebflowEventResolverTests extends BaseCasWebflo
     }
 
     @Test
-    public void verifyServiceTicketRequest() {
+    public void verifyServiceTicketRequestCreated() throws Exception {
+        val context = new MockRequestContext();
+        val request = new MockHttpServletRequest();
+        val response = new MockHttpServletResponse();
+        context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, response));
+        RequestContextHolder.setRequestContext(context);
+        ExternalContextHolder.setExternalContext(context.getExternalContext());
+
+        val tgt = new MockTicketGrantingTicket("casuser");
+        ticketRegistry.addTicket(tgt);
+
+        val service = RegisteredServiceTestUtils.getService("service-ticket-request");
+        val registeredService = RegisteredServiceTestUtils.getRegisteredService(service.getId());
+        registeredService.setAccessStrategy(new DefaultRegisteredServiceAccessStrategy(true, true));
+        servicesManager.save(registeredService);
+        WebUtils.putTicketGrantingTicketInScopes(context, tgt);
+        WebUtils.putServiceIntoFlowScope(context, service);
+        WebUtils.putCredential(context, RegisteredServiceTestUtils.getCredentialsWithDifferentUsernameAndPassword("casuser", "Mellon"));
+        val event = serviceTicketRequestWebflowEventResolver.resolveSingle(context);
+        assertEquals(CasWebflowConstants.TRANSITION_ID_GENERATE_SERVICE_TICKET, event.getId());
+    }
+
+    @Test
+    public void verifyServiceTicketRequestPrincipalMismatch() throws Exception {
+        val context = new MockRequestContext();
+        val request = new MockHttpServletRequest();
+        val response = new MockHttpServletResponse();
+        context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, response));
+        RequestContextHolder.setRequestContext(context);
+        ExternalContextHolder.setExternalContext(context.getExternalContext());
+
+        val tgt = new MockTicketGrantingTicket("randomuser");
+        ticketRegistry.addTicket(tgt);
+
+        val service = RegisteredServiceTestUtils.getService("service-ticket-request");
+        val registeredService = RegisteredServiceTestUtils.getRegisteredService(service.getId());
+        registeredService.setAccessStrategy(new DefaultRegisteredServiceAccessStrategy(true, true));
+        servicesManager.save(registeredService);
+        WebUtils.putTicketGrantingTicketInScopes(context, tgt);
+        WebUtils.putServiceIntoFlowScope(context, service);
+        WebUtils.putCredential(context, RegisteredServiceTestUtils.getCredentialsWithDifferentUsernameAndPassword("casuser", "Mellon"));
+        assertNull(serviceTicketRequestWebflowEventResolver.resolveSingle(context));
+    }
+
+    @Test
+    public void verifyServiceTicketRequestFailsAuthN() throws Exception {
+        val context = new MockRequestContext();
+        val request = new MockHttpServletRequest();
+        val response = new MockHttpServletResponse();
+        context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, response));
+        RequestContextHolder.setRequestContext(context);
+        ExternalContextHolder.setExternalContext(context.getExternalContext());
+
+        val tgt = new MockTicketGrantingTicket("casuser");
+        ticketRegistry.addTicket(tgt);
+
+        val service = RegisteredServiceTestUtils.getService("service-ticket-request");
+        val registeredService = RegisteredServiceTestUtils.getRegisteredService(service.getId());
+        registeredService.setAccessStrategy(new DefaultRegisteredServiceAccessStrategy(true, true));
+        servicesManager.save(registeredService);
+        WebUtils.putTicketGrantingTicketInScopes(context, tgt);
+        WebUtils.putServiceIntoFlowScope(context, service);
+        WebUtils.putCredential(context, RegisteredServiceTestUtils.getCredentialsWithDifferentUsernameAndPassword("casuser", "badP@ass"));
+        val event = serviceTicketRequestWebflowEventResolver.resolveSingle(context);
+        assertEquals(CasWebflowConstants.TRANSITION_ID_AUTHENTICATION_FAILURE, event.getId());
+    }
+
+    @Test
+    public void verifyServiceTicketRequestWithRenew() throws Exception {
         val context = new MockRequestContext();
 
         val request = new MockHttpServletRequest();
@@ -85,7 +179,7 @@ public class ServiceTicketRequestWebflowEventResolverTests extends BaseCasWebflo
         WebUtils.putTicketGrantingTicketInScopes(context, tgt);
         WebUtils.putServiceIntoFlowScope(context, service);
         val event = serviceTicketRequestWebflowEventResolver.resolveSingle(context);
-        assertEquals(CasWebflowConstants.TRANSITION_ID_AUTHENTICATION_FAILURE, event.getId());
+        assertNull(event);
 
     }
 

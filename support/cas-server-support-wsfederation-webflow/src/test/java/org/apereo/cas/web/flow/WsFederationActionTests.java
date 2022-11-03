@@ -32,10 +32,10 @@ import static org.junit.jupiter.api.Assertions.*;
         "cas.authn.wsfed[0].signing-certificate-resources=classpath:adfs-signing.crt",
         "cas.authn.wsfed[0].identity-attribute=upn"
     })
-@Tag("Webflow")
+@Tag("WebflowActions")
 public class WsFederationActionTests {
     @Autowired
-    @Qualifier("wsFederationAction")
+    @Qualifier(CasWebflowConstants.ACTION_ID_WS_FEDERATION)
     protected Action wsFederationAction;
 
     @Test
@@ -45,6 +45,6 @@ public class WsFederationActionTests {
         context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, new MockHttpServletResponse()));
         WebUtils.putServiceIntoFlowScope(context, CoreAuthenticationTestUtils.getWebApplicationService());
         wsFederationAction.execute(context);
-        assertTrue(context.getFlowScope().contains(WsFederationRequestBuilder.PARAMETER_NAME_WSFED_CLIENTS));
+        assertFalse(WebUtils.getWsFederationDelegatedClients(context, WsFedClient.class).isEmpty());
     }
 }

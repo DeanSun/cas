@@ -3,6 +3,7 @@ package org.apereo.cas.authentication.policy;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.authentication.exceptions.AccountDisabledException;
 import org.apereo.cas.authentication.exceptions.AccountPasswordMustChangeException;
+import org.apereo.cas.configuration.model.core.authentication.RestAuthenticationPolicyProperties;
 import org.apereo.cas.util.MockWebServer;
 
 import lombok.val;
@@ -22,7 +23,7 @@ import java.security.GeneralSecurityException;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 
-import static org.apereo.cas.util.junit.Assertions.assertThrowsWithRootCause;
+import static org.apereo.cas.util.junit.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -31,22 +32,22 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 5.2.0
  */
-@Tag("RestfulApi")
+@Tag("RestfulApiAuthentication")
 public class RestfulAuthenticationPolicyTests {
     @Test
-    public void verifyAllowedOperation() {
+    public void verifyAllowedOperation() throws Exception {
         val applicationContext = new StaticApplicationContext();
         applicationContext.refresh();
 
         try (val webServer = new MockWebServer(9200,
             new ByteArrayResource(StringUtils.EMPTY.getBytes(StandardCharsets.UTF_8), "Output"), HttpStatus.OK)) {
             webServer.start();
-            val policy = new RestfulAuthenticationPolicy("http://localhost:9200");
+            val props = new RestAuthenticationPolicyProperties();
+            props.setUrl("http://localhost:9200");
+            val policy = new RestfulAuthenticationPolicy(props);
             assertTrue(policy.isSatisfiedBy(CoreAuthenticationTestUtils.getAuthentication("casuser"),
-                new LinkedHashSet<>(), applicationContext, Optional.empty()));
-        } catch (final Exception e) {
-            throw new AssertionError(e.getMessage(), e);
-        }
+                new LinkedHashSet<>(), applicationContext, Optional.empty()).isSuccess());
+        } 
     }
 
     @Test
@@ -69,12 +70,12 @@ public class RestfulAuthenticationPolicyTests {
         try (val webServer = new MockWebServer(port,
             new ByteArrayResource(StringUtils.EMPTY.getBytes(StandardCharsets.UTF_8), "Output"), status)) {
             webServer.start();
-            val policy = new RestfulAuthenticationPolicy("http://localhost:" + port);
+            val props = new RestAuthenticationPolicyProperties();
+            props.setUrl("http://localhost:" + port);
+            val policy = new RestfulAuthenticationPolicy(props);
             assertThrowsWithRootCause(GeneralSecurityException.class, exceptionClass,
                 () -> policy.isSatisfiedBy(CoreAuthenticationTestUtils.getAuthentication("casuser"),
                     new LinkedHashSet<>(), applicationContext, Optional.empty()));
-        } catch (final Exception e) {
-            throw new AssertionError(e.getMessage(), e);
         }
     }
 }

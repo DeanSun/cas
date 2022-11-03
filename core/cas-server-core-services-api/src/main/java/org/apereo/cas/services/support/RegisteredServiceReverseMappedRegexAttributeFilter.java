@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
+import java.io.Serial;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -18,9 +19,10 @@ import java.util.stream.Collectors;
  * @since 5.1.0
  */
 @Slf4j
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public class RegisteredServiceReverseMappedRegexAttributeFilter extends RegisteredServiceMappedRegexAttributeFilter {
 
+    @Serial
     private static final long serialVersionUID = 852145306984610128L;
     
     @Override

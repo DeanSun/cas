@@ -7,12 +7,11 @@ import org.apereo.cas.authentication.principal.WebApplicationServiceFactory;
 import org.apereo.cas.logout.slo.DefaultSingleLogoutServiceLogoutUrlBuilder;
 import org.apereo.cas.logout.slo.DefaultSingleLogoutServiceMessageHandler;
 import org.apereo.cas.mock.MockTicketGrantingTicket;
-import org.apereo.cas.services.AbstractRegisteredService;
+import org.apereo.cas.services.BaseRegisteredService;
+import org.apereo.cas.services.CasRegisteredService;
 import org.apereo.cas.services.RegexMatchingRegisteredServiceProxyPolicy;
-import org.apereo.cas.services.RegexRegisteredService;
 import org.apereo.cas.services.RegisteredServiceLogoutType;
 import org.apereo.cas.services.ServicesManager;
-import org.apereo.cas.ticket.TicketGrantingTicket;
 import org.apereo.cas.util.RandomUtils;
 import org.apereo.cas.util.http.HttpClient;
 import org.apereo.cas.util.http.HttpMessage;
@@ -26,8 +25,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.net.URL;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -36,18 +37,19 @@ import static org.mockito.Mockito.*;
  * @author Jerome Leleu
  * @since 4.0.0
  */
-@Tag("Authentication")
+@Tag("Logout")
 public class DefaultLogoutManagerTests {
     private static final String ID = "id";
+
     private static final String URL = "http://www.github.com";
 
     private LogoutManager logoutManager;
 
-    private TicketGrantingTicket tgt;
+    private MockTicketGrantingTicket tgt;
 
     private AbstractWebApplicationService simpleWebApplicationServiceImpl;
 
-    private AbstractRegisteredService registeredService;
+    private BaseRegisteredService registeredService;
 
     @Mock
     private ServicesManager servicesManager;
@@ -57,21 +59,20 @@ public class DefaultLogoutManagerTests {
 
     private DefaultSingleLogoutServiceMessageHandler singleLogoutServiceMessageHandler;
 
-    public DefaultLogoutManagerTests() {
-        MockitoAnnotations.initMocks(this);
+    public DefaultLogoutManagerTests() throws Exception {
+        MockitoAnnotations.openMocks(this).close();
     }
 
     @SneakyThrows
-    public static AbstractRegisteredService getRegisteredService(final String id) {
-        val s = new RegexRegisteredService();
+    public static BaseRegisteredService getRegisteredService(final String id) {
+        val s = new CasRegisteredService();
         s.setServiceId(id);
         s.setName("Test registered service " + id);
         s.setDescription("Registered service description");
-        s.setProxyPolicy(new RegexMatchingRegisteredServiceProxyPolicy("^https?://.+"));
+        s.setProxyPolicy(new RegexMatchingRegisteredServiceProxyPolicy().setPattern("^https?://.+"));
         s.setId(RandomUtils.getNativeInstance().nextInt());
         return s;
     }
-
 
     public static AbstractWebApplicationService getService(final String url) {
         val request = new MockHttpServletRequest();
@@ -93,7 +94,7 @@ public class DefaultLogoutManagerTests {
             new DefaultSingleLogoutMessageCreator(), servicesManager,
             new DefaultSingleLogoutServiceLogoutUrlBuilder(servicesManager, validator), true,
             new DefaultAuthenticationServiceSelectionPlan(new DefaultAuthenticationServiceSelectionStrategy()));
-        
+
         this.simpleWebApplicationServiceImpl = getService(URL);
         tgt.getServices().put(ID, this.simpleWebApplicationServiceImpl);
 
@@ -103,12 +104,20 @@ public class DefaultLogoutManagerTests {
         this.logoutManager = new DefaultLogoutManager(false, plan);
         this.registeredService = getRegisteredService(URL);
         when(servicesManager.findServiceBy(this.simpleWebApplicationServiceImpl)).thenReturn(this.registeredService);
+        assertTrue(plan.getLogoutRedirectionStrategies().isEmpty());
     }
 
     @Test
     public void verifyServiceLogoutUrlIsUsed() {
+
         this.registeredService.setLogoutUrl("https://www.apereo.org");
-        val logoutRequests = this.logoutManager.performLogout(tgt);
+        val logoutRequests = this.logoutManager.performLogout(
+            SingleLogoutExecutionRequest
+                .builder()
+                .ticketGrantingTicket(tgt)
+                .httpServletResponse(Optional.of(new MockHttpServletResponse()))
+                .httpServletRequest(Optional.of(new MockHttpServletRequest()))
+                .build());
         val logoutRequest = logoutRequests.iterator().next();
         assertEquals(this.registeredService.getLogoutUrl(), logoutRequest.getLogoutUrl().toExternalForm());
     }
@@ -119,20 +128,35 @@ public class DefaultLogoutManagerTests {
         plan.registerSingleLogoutServiceMessageHandler(singleLogoutServiceMessageHandler);
         this.logoutManager = new DefaultLogoutManager(true, plan);
 
-        val logoutRequests = this.logoutManager.performLogout(tgt);
+        val logoutRequests = this.logoutManager.performLogout(SingleLogoutExecutionRequest
+            .builder()
+            .ticketGrantingTicket(tgt)
+            .httpServletResponse(Optional.of(new MockHttpServletResponse()))
+            .httpServletRequest(Optional.of(new MockHttpServletRequest()))
+            .build());
         assertEquals(0, logoutRequests.size());
     }
 
     @Test
     public void verifyLogoutAlreadyLoggedOut() {
         this.simpleWebApplicationServiceImpl.setLoggedOutAlready(true);
-        val logoutRequests = this.logoutManager.performLogout(tgt);
+        val logoutRequests = this.logoutManager.performLogout(SingleLogoutExecutionRequest
+            .builder()
+            .ticketGrantingTicket(tgt)
+            .httpServletResponse(Optional.of(new MockHttpServletResponse()))
+            .httpServletRequest(Optional.of(new MockHttpServletRequest()))
+            .build());
         assertEquals(0, logoutRequests.size());
     }
 
     @Test
     public void verifyLogoutTypeNotSet() {
-        val logoutRequests = this.logoutManager.performLogout(tgt);
+        val logoutRequests = this.logoutManager.performLogout(SingleLogoutExecutionRequest
+            .builder()
+            .ticketGrantingTicket(tgt)
+            .httpServletResponse(Optional.of(new MockHttpServletResponse()))
+            .httpServletRequest(Optional.of(new MockHttpServletRequest()))
+            .build());
         assertEquals(1, logoutRequests.size());
         val logoutRequest = logoutRequests.iterator().next();
         assertEquals(ID, logoutRequest.getTicketId());
@@ -143,7 +167,12 @@ public class DefaultLogoutManagerTests {
     @Test
     public void verifyLogoutTypeBack() {
         this.registeredService.setLogoutType(RegisteredServiceLogoutType.BACK_CHANNEL);
-        val logoutRequests = this.logoutManager.performLogout(tgt);
+        val logoutRequests = this.logoutManager.performLogout(SingleLogoutExecutionRequest
+            .builder()
+            .ticketGrantingTicket(tgt)
+            .httpServletResponse(Optional.of(new MockHttpServletResponse()))
+            .httpServletRequest(Optional.of(new MockHttpServletRequest()))
+            .build());
         assertEquals(1, logoutRequests.size());
         val logoutRequest = logoutRequests.iterator().next();
         assertEquals(ID, logoutRequest.getTicketId());
@@ -154,14 +183,24 @@ public class DefaultLogoutManagerTests {
     @Test
     public void verifyLogoutTypeNone() {
         this.registeredService.setLogoutType(RegisteredServiceLogoutType.NONE);
-        val logoutRequests = this.logoutManager.performLogout(tgt);
+        val logoutRequests = this.logoutManager.performLogout(SingleLogoutExecutionRequest
+            .builder()
+            .ticketGrantingTicket(tgt)
+            .httpServletResponse(Optional.of(new MockHttpServletResponse()))
+            .httpServletRequest(Optional.of(new MockHttpServletRequest()))
+            .build());
         assertEquals(0, logoutRequests.size());
     }
 
     @Test
     public void verifyLogoutTypeNull() {
         this.registeredService.setLogoutType(null);
-        val logoutRequests = this.logoutManager.performLogout(tgt);
+        val logoutRequests = this.logoutManager.performLogout(SingleLogoutExecutionRequest
+            .builder()
+            .ticketGrantingTicket(tgt)
+            .httpServletResponse(Optional.of(new MockHttpServletResponse()))
+            .httpServletRequest(Optional.of(new MockHttpServletRequest()))
+            .build());
         assertEquals(1, logoutRequests.size());
         val logoutRequest = logoutRequests.iterator().next();
         assertEquals(ID, logoutRequest.getTicketId());
@@ -170,7 +209,12 @@ public class DefaultLogoutManagerTests {
     @Test
     public void verifyLogoutTypeFront() {
         this.registeredService.setLogoutType(RegisteredServiceLogoutType.FRONT_CHANNEL);
-        val logoutRequests = this.logoutManager.performLogout(tgt);
+        val logoutRequests = this.logoutManager.performLogout(SingleLogoutExecutionRequest
+            .builder()
+            .ticketGrantingTicket(tgt)
+            .httpServletResponse(Optional.of(new MockHttpServletResponse()))
+            .httpServletRequest(Optional.of(new MockHttpServletRequest()))
+            .build());
         assertEquals(1, logoutRequests.size());
         val logoutRequest = logoutRequests.iterator().next();
         assertEquals(ID, logoutRequest.getTicketId());
@@ -181,7 +225,12 @@ public class DefaultLogoutManagerTests {
     @Test
     public void verifyAsynchronousLogout() {
         this.registeredService.setLogoutType(RegisteredServiceLogoutType.BACK_CHANNEL);
-        val logoutRequests = this.logoutManager.performLogout(tgt);
+        val logoutRequests = this.logoutManager.performLogout(SingleLogoutExecutionRequest
+            .builder()
+            .ticketGrantingTicket(tgt)
+            .httpServletResponse(Optional.of(new MockHttpServletResponse()))
+            .httpServletRequest(Optional.of(new MockHttpServletRequest()))
+            .build());
         assertEquals(1, logoutRequests.size());
     }
 }

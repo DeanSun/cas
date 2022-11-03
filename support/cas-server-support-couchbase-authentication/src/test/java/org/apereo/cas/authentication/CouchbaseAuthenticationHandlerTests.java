@@ -1,10 +1,11 @@
 package org.apereo.cas.authentication;
 
 import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
+import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.couchbase.core.CouchbaseClientFactory;
+import org.apereo.cas.couchbase.core.DefaultCouchbaseClientFactory;
 import org.apereo.cas.services.ServicesManager;
-import org.apereo.cas.util.junit.EnabledIfPortOpen;
+import org.apereo.cas.util.junit.EnabledIfListeningOnPort;
 
 import lombok.val;
 import org.junit.jupiter.api.Tag;
@@ -28,12 +29,12 @@ import static org.mockito.Mockito.*;
  * @since 6.0.4
  */
 @Tag("Couchbase")
-@EnabledIfPortOpen(port = 8091)
+@EnabledIfListeningOnPort(port = 8091)
 @SpringBootTest(classes = RefreshAutoConfiguration.class,
     properties = {
         "cas.authn.couchbase.cluster-username=admin",
         "cas.authn.couchbase.cluster-password=password",
-        "cas.authn.couchbase.bucket=testbucket"
+        "cas.authn.couchbase.bucket=pplbucket"
     })
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class CouchbaseAuthenticationHandlerTests {
@@ -43,11 +44,11 @@ public class CouchbaseAuthenticationHandlerTests {
     @Test
     public void verify() throws Exception {
         val props = casProperties.getAuthn().getCouchbase();
-        val factory = new CouchbaseClientFactory(props);
+        val factory = new DefaultCouchbaseClientFactory(props);
         val handler = new CouchbaseAuthenticationHandler(mock(ServicesManager.class),
             PrincipalFactoryUtils.newPrincipalFactory(), factory, props);
         val c = CoreAuthenticationTestUtils.getCredentialsWithDifferentUsernameAndPassword("casuser", "Mellon");
-        val result = handler.authenticate(c);
+        val result = handler.authenticate(c, mock(Service.class));
         assertNotNull(result);
         val attributes = result.getPrincipal().getAttributes();
         assertEquals(2, attributes.size());
@@ -58,21 +59,32 @@ public class CouchbaseAuthenticationHandlerTests {
     @Test
     public void verifyBadEncoding() {
         val props = casProperties.getAuthn().getCouchbase();
-        val factory = new CouchbaseClientFactory(props);
+        val factory = new DefaultCouchbaseClientFactory(props);
         val handler = new CouchbaseAuthenticationHandler(mock(ServicesManager.class),
             PrincipalFactoryUtils.newPrincipalFactory(), factory, props);
         handler.setPasswordEncoder(new SCryptPasswordEncoder());
         val c = CoreAuthenticationTestUtils.getCredentialsWithDifferentUsernameAndPassword("casuser", "Mellon");
-        assertThrows(FailedLoginException.class, () -> handler.authenticate(c));
+        assertThrows(FailedLoginException.class, () -> handler.authenticate(c, mock(Service.class)));
+    }
+
+    @Test
+    public void verifyBadRecord() {
+        val props = casProperties.getAuthn().getCouchbase();
+        val factory = new DefaultCouchbaseClientFactory(props);
+        val handler = new CouchbaseAuthenticationHandler(mock(ServicesManager.class),
+            PrincipalFactoryUtils.newPrincipalFactory(), factory, props);
+        handler.setPasswordEncoder(new SCryptPasswordEncoder());
+        val c = CoreAuthenticationTestUtils.getCredentialsWithDifferentUsernameAndPassword("nopsw", "Mellon");
+        assertThrows(FailedLoginException.class, () -> handler.authenticate(c, mock(Service.class)));
     }
 
     @Test
     public void verifyMissingUser() {
         val props = casProperties.getAuthn().getCouchbase();
-        val factory = new CouchbaseClientFactory(props);
+        val factory = new DefaultCouchbaseClientFactory(props);
         val handler = new CouchbaseAuthenticationHandler(mock(ServicesManager.class),
             PrincipalFactoryUtils.newPrincipalFactory(), factory, props);
         val c = CoreAuthenticationTestUtils.getCredentialsWithDifferentUsernameAndPassword("casuser-missing", "Mellon");
-        assertThrows(AccountNotFoundException.class, () -> handler.authenticate(c));
+        assertThrows(AccountNotFoundException.class, () -> handler.authenticate(c, mock(Service.class)));
     }
 }

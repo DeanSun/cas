@@ -29,10 +29,10 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest(classes = BaseCasGoogleAnalyticsTests.SharedTestConfiguration.class)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
-@Tag("Webflow")
+@Tag("WebflowActions")
 public class RemoveGoogleAnalyticsCookieActionTests {
     @Autowired
-    @Qualifier("removeGoogleAnalyticsCookieAction")
+    @Qualifier(CasWebflowConstants.ACTION_ID_GOOGLE_ANALYTICS_REMOVE_COOKIE)
     private Action removeGoogleAnalyticsCookieAction;
 
     @Test

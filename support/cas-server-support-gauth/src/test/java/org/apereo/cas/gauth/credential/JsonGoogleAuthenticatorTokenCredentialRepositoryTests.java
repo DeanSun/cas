@@ -1,5 +1,6 @@
 package org.apereo.cas.gauth.credential;
 
+import org.apereo.cas.authentication.OneTimeTokenAccount;
 import org.apereo.cas.gauth.BaseGoogleAuthenticatorTests;
 import org.apereo.cas.otp.repository.credentials.OneTimeTokenCredentialRepository;
 import org.apereo.cas.util.crypto.CipherExecutor;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 
 import java.io.File;
@@ -23,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * This is {@link JsonGoogleAuthenticatorTokenCredentialRepositoryTests}.
@@ -31,9 +34,9 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 5.2.0
  */
 @SpringBootTest(classes = BaseGoogleAuthenticatorTests.SharedTestConfiguration.class,
-    properties = "cas.authn.mfa.gauth.json.location=file:/tmp/repository.json")
+    properties = "cas.authn.mfa.gauth.json.location=file:${java.io.tmpdir}/repository.json")
 @Getter
-@Tag("MFA")
+@Tag("MFAProvider")
 public class JsonGoogleAuthenticatorTokenCredentialRepositoryTests extends BaseOneTimeTokenCredentialRepositoryTests {
 
     @Autowired
@@ -45,9 +48,22 @@ public class JsonGoogleAuthenticatorTokenCredentialRepositoryTests extends BaseO
     private IGoogleAuthenticator googleAuthenticatorInstance;
 
     @Test
+    public void verifyFails() throws Exception {
+        val resource = mock(Resource.class);
+        val repo = new JsonGoogleAuthenticatorTokenCredentialRepository(resource,
+            googleAuthenticatorInstance, CipherExecutor.noOpOfStringToString(), CipherExecutor.noOpOfNumberToNumber());
+        assertTrue(repo.load().isEmpty());
+        assertNull(repo.update(OneTimeTokenAccount.builder().build()));
+        assertEquals(0, repo.count());
+        assertDoesNotThrow(() -> repo.delete("casuser"));
+        when(resource.getFile()).thenReturn(File.createTempFile("test", ".json"));
+        assertTrue(repo.get("casuser").isEmpty());
+    }
+
+    @Test
     public void verifyNotExists() {
         val repo = new JsonGoogleAuthenticatorTokenCredentialRepository(new ClassPathResource("acct-bad.json"),
-            googleAuthenticatorInstance, CipherExecutor.noOpOfStringToString());
+            googleAuthenticatorInstance, CipherExecutor.noOpOfStringToString(), CipherExecutor.noOpOfNumberToNumber());
         assertTrue(repo.get("casuser").isEmpty());
     }
 
@@ -56,7 +72,7 @@ public class JsonGoogleAuthenticatorTokenCredentialRepositoryTests extends BaseO
         val file = File.createTempFile("account", ".json");
         FileUtils.writeStringToFile(file, "{}", StandardCharsets.UTF_8);
         val repo = new JsonGoogleAuthenticatorTokenCredentialRepository(new FileSystemResource(file),
-            googleAuthenticatorInstance, CipherExecutor.noOpOfStringToString());
+            googleAuthenticatorInstance, CipherExecutor.noOpOfStringToString(), CipherExecutor.noOpOfNumberToNumber());
         assertTrue(repo.get("casuser").isEmpty());
         repo.deleteAll();
         assertTrue(repo.load().isEmpty());
@@ -74,7 +90,7 @@ public class JsonGoogleAuthenticatorTokenCredentialRepositoryTests extends BaseO
     @Test
     public void verifyBadResource() throws Exception {
         val repo = new JsonGoogleAuthenticatorTokenCredentialRepository(new UrlResource(new URL("https://httpbin.org/get")),
-            googleAuthenticatorInstance, CipherExecutor.noOpOfStringToString());
+            googleAuthenticatorInstance, CipherExecutor.noOpOfStringToString(), CipherExecutor.noOpOfNumberToNumber());
         assertTrue(repo.get("casuser").isEmpty());
     }
 }

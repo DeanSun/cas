@@ -1,10 +1,12 @@
 package org.apereo.cas.services.web;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.web.servlet.ThemeResolver;
 import org.springframework.web.servlet.theme.AbstractThemeResolver;
 
+import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.LinkedHashSet;
@@ -28,13 +30,17 @@ public class ChainingThemeResolver extends AbstractThemeResolver {
      * @param r the resolver
      * @return the chaining theme resolver
      */
+    @CanIgnoreReturnValue
     public ChainingThemeResolver addResolver(final ThemeResolver r) {
         chain.add(r);
         return this;
     }
 
+    @Nonnull
     @Override
-    public String resolveThemeName(final HttpServletRequest httpServletRequest) {
+    public String resolveThemeName(
+        @Nonnull
+        final HttpServletRequest httpServletRequest) {
         val it = chain.iterator();
         while (it.hasNext()) {
             val r = it.next();
@@ -50,8 +56,10 @@ public class ChainingThemeResolver extends AbstractThemeResolver {
     }
 
     @Override
-    public void setThemeName(final HttpServletRequest httpServletRequest,
-                             final HttpServletResponse httpServletResponse,
-                             final String s) {
+    public void setThemeName(
+        @Nonnull
+        final HttpServletRequest httpServletRequest,
+        final HttpServletResponse httpServletResponse,
+        final String s) {
     }
 }

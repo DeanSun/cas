@@ -21,9 +21,14 @@ public class SurrogateRegisteredServiceAccessStrategyTests {
     public void verifySurrogateDisabled() {
         val a = new SurrogateRegisteredServiceAccessStrategy();
         a.setSurrogateEnabled(false);
-        val result = a.doPrincipalAttributesAllowServiceAccess("casuser",
-            CollectionUtils.wrap(SurrogateAuthenticationService.AUTHENTICATION_ATTR_SURROGATE_ENABLED, true));
-        assertFalse(result);
+        assertFalse(executeStrategy(a));
+    }
+
+    private static boolean executeStrategy(final SurrogateRegisteredServiceAccessStrategy a) {
+        val request = RegisteredServiceAccessStrategyRequest.builder().principalId("casuser")
+            .attributes(CollectionUtils.wrap(SurrogateAuthenticationService.AUTHENTICATION_ATTR_SURROGATE_ENABLED, true))
+            .build();
+        return a.doPrincipalAttributesAllowServiceAccess(request);
     }
 
     @Test
@@ -31,17 +36,22 @@ public class SurrogateRegisteredServiceAccessStrategyTests {
         val a = new SurrogateRegisteredServiceAccessStrategy();
         a.setSurrogateEnabled(true);
         a.setSurrogateRequiredAttributes(CollectionUtils.wrap("surrogateA", "surrogateV"));
-        val result = a.doPrincipalAttributesAllowServiceAccess("casuser",
-            CollectionUtils.wrap(SurrogateAuthenticationService.AUTHENTICATION_ATTR_SURROGATE_ENABLED, true));
-        assertFalse(result);
+        assertFalse(executeStrategy(a));
+    }
+
+    @Test
+    public void verifySurrogateAttributesNotAvail() {
+        val a = new SurrogateRegisteredServiceAccessStrategy();
+        a.setSurrogateEnabled(true);
+        a.setSurrogateRequiredAttributes(CollectionUtils.wrap("surrogateA", "surrogateV",
+            "surrogateB", "surrogateZ"));
+        assertFalse(executeStrategy(a));
     }
 
     @Test
     public void verifySurrogateAllowed() {
         val a = new SurrogateRegisteredServiceAccessStrategy();
         a.setSurrogateEnabled(true);
-        val result = a.doPrincipalAttributesAllowServiceAccess("casuser",
-            CollectionUtils.wrap(SurrogateAuthenticationService.AUTHENTICATION_ATTR_SURROGATE_ENABLED, true));
-        assertTrue(result);
+        assertTrue(executeStrategy(a));
     }
 }

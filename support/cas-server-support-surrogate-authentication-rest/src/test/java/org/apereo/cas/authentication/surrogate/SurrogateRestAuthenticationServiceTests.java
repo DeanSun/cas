@@ -5,13 +5,11 @@ import org.apereo.cas.config.SurrogateRestAuthenticationConfiguration;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.MockWebServer;
+import org.apereo.cas.util.serialization.JacksonObjectMapperFactory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.val;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,46 +37,52 @@ import static org.junit.jupiter.api.Assertions.*;
     properties = "cas.authn.surrogate.rest.url=http://localhost:9301")
 @Getter
 public class SurrogateRestAuthenticationServiceTests extends BaseSurrogateAuthenticationServiceTests {
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-        .findAndRegisterModules()
-        .configure(DeserializationFeature.READ_ENUMS_USING_TO_STRING, false)
-        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final ObjectMapper MAPPER = JacksonObjectMapperFactory.builder().build().toObjectMapper();
 
     @Autowired
-    @Qualifier("surrogateAuthenticationService")
+    @Qualifier(SurrogateAuthenticationService.BEAN_NAME)
     private SurrogateAuthenticationService service;
-
-    private MockWebServer webServer;
 
     @Override
     @Test
-    public void verifyList() {
-        var data = StringUtils.EMPTY;
-        try {
-            data = MAPPER.writeValueAsString(CollectionUtils.wrapList("casuser", "otheruser"));
-        } catch (final JsonProcessingException e) {
-            throw new AssertionError(e);
-        }
+    public void verifyUserAllowedToProxy() throws Exception {
+        var data = MAPPER.writeValueAsString(CollectionUtils.wrapList("casuser", "otheruser"));
         try (val webServer = new MockWebServer(9301,
             new ByteArrayResource(data.getBytes(StandardCharsets.UTF_8), "REST Output"), MediaType.APPLICATION_JSON_VALUE)) {
-            this.webServer = webServer;
-            this.webServer.start();
-            assertTrue(this.webServer.isRunning());
-            super.verifyList();
-        } catch (final Exception e) {
-            throw new AssertionError(e.getMessage(), e);
+            webServer.start();
+            assertTrue(webServer.isRunning());
+            super.verifyUserAllowedToProxy();
         }
     }
 
     @Override
     @Test
-    public void verifyProxying() {
-        var data = StringUtils.EMPTY;
-        try {
-            data = MAPPER.writeValueAsString(CollectionUtils.wrapList("casuser", "otheruser"));
-        } catch (final JsonProcessingException e) {
-            throw new AssertionError(e);
+    public void verifyUserNotAllowedToProxy() throws Exception {
+        var data = MAPPER.writeValueAsString(CollectionUtils.wrapList());
+        try (val webServer = new MockWebServer(9301,
+            new ByteArrayResource(data.getBytes(StandardCharsets.UTF_8), "REST Output"), MediaType.APPLICATION_JSON_VALUE)) {
+            webServer.start();
+            assertTrue(webServer.isRunning());
+            super.verifyUserNotAllowedToProxy();
         }
+    }
+
+    @Override
+    @Test
+    public void verifyWildcard() throws Exception {
+        var data = MAPPER.writeValueAsString(CollectionUtils.wrapList(SurrogateAuthenticationService.WILDCARD_ACCOUNT));
+        try (val webServer = new MockWebServer(9301,
+            new ByteArrayResource(data.getBytes(StandardCharsets.UTF_8), "REST Output"), MediaType.APPLICATION_JSON_VALUE)) {
+            webServer.start();
+            assertTrue(webServer.isRunning());
+            super.verifyWildcard();
+        }
+    }
+
+    @Override
+    @Test
+    public void verifyProxying() throws Exception {
+        var data = MAPPER.writeValueAsString(CollectionUtils.wrapList("casuser", "otheruser"));
         try (val webServer = new MockWebServer(9310,
             new ByteArrayResource(data.getBytes(StandardCharsets.UTF_8), "REST Output"), MediaType.APPLICATION_JSON_VALUE)) {
             webServer.start();
@@ -87,7 +91,7 @@ public class SurrogateRestAuthenticationServiceTests extends BaseSurrogateAuthen
             props.getAuthn().getSurrogate().getRest().setUrl("http://localhost:9310");
             val surrogateService = new SurrogateRestAuthenticationService(props.getAuthn().getSurrogate().getRest(), servicesManager);
 
-            val result = surrogateService.canAuthenticateAs("cassurrogate",
+            val result = surrogateService.canImpersonate("cassurrogate",
                 CoreAuthenticationTestUtils.getPrincipal("casuser"),
                 Optional.of(CoreAuthenticationTestUtils.getService()));
             /*
@@ -95,8 +99,22 @@ public class SurrogateRestAuthenticationServiceTests extends BaseSurrogateAuthen
              * completely refactored and don't need an actual server to connect to.
              */
             assertTrue(result);
-        } catch (final Exception e) {
-            throw new AssertionError(e.getMessage(), e);
+        }
+    }
+
+    @Test
+    public void verifyBadResponse() throws Exception {
+        var data = MAPPER.writeValueAsString("@@@");
+        try (val webServer = new MockWebServer(9310,
+            new ByteArrayResource(data.getBytes(StandardCharsets.UTF_8), "REST Output"), MediaType.APPLICATION_JSON_VALUE)) {
+            webServer.start();
+
+            val props = new CasConfigurationProperties();
+            props.getAuthn().getSurrogate().getRest().setUrl("http://localhost:9310");
+            val surrogateService = new SurrogateRestAuthenticationService(props.getAuthn().getSurrogate().getRest(), servicesManager);
+
+            val result = surrogateService.getImpersonationAccounts("cassurrogate");
+            assertTrue(result.isEmpty());
         }
     }
 }

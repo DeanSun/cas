@@ -15,9 +15,11 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.Ordered;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.Optional;
 
 /**
@@ -33,20 +35,22 @@ import java.util.Optional;
 public class RegisteredServiceMultifactorAuthenticationTrigger implements MultifactorAuthenticationTrigger {
     private final CasConfigurationProperties casProperties;
     private final MultifactorAuthenticationProviderSelector multifactorAuthenticationProviderSelector;
-
+    private final ConfigurableApplicationContext applicationContext;
+    
     private int order = Ordered.LOWEST_PRECEDENCE;
 
     @Override
     public Optional<MultifactorAuthenticationProvider> isActivated(final Authentication authentication,
                                                                    final RegisteredService registeredService,
                                                                    final HttpServletRequest httpServletRequest,
+                                                                   final HttpServletResponse response,
                                                                    final Service service) {
         if (registeredService == null || authentication == null) {
             LOGGER.debug("No service or authentication is available to determine event for principal");
             return Optional.empty();
         }
 
-        val policy = registeredService.getMultifactorPolicy();
+        val policy = registeredService.getMultifactorAuthenticationPolicy();
         if (policy == null || policy.getMultifactorAuthenticationProviders().isEmpty()) {
             LOGGER.trace("Authentication policy does not contain any multifactor authentication providers");
             return Optional.empty();
@@ -58,9 +62,9 @@ public class RegisteredServiceMultifactorAuthenticationTrigger implements Multif
                 registeredService.getServiceId());
             return Optional.empty();
         }
-
+                                                    
         val principal = authentication.getPrincipal();
-        val providers = MultifactorAuthenticationUtils.getMultifactorAuthenticationProviderForService(registeredService);
+        val providers = MultifactorAuthenticationUtils.getMultifactorAuthenticationProviderForService(registeredService, applicationContext);
         if (providers != null && !providers.isEmpty()) {
             val provider = multifactorAuthenticationProviderSelector.resolve(providers, registeredService, principal);
             LOGGER.debug("Selected multifactor authentication provider for this transaction is [{}]", provider);

@@ -1,6 +1,7 @@
 description = "Apereo CAS Support for Pac4j APIs"
 dependencies {
-    implementation libraries.pac4jcore
+    api libraries.pac4jcore
+    
     implementation libraries.nimbus
 
     implementation project(":core:cas-server-core-authentication-api")
@@ -11,6 +12,7 @@ dependencies {
     implementation project(":core:cas-server-core-tickets-api")
     implementation project(":core:cas-server-core-cookie-api")
     implementation project(":core:cas-server-core-web-api")
+    implementation project(":core:cas-server-core-webflow-api")
     implementation project(":core:cas-server-core-logout-api")
     implementation project(":core:cas-server-core-services-authentication")
     
@@ -27,8 +29,11 @@ dependencies {
     testImplementation project(":core:cas-server-core-logout")
     testImplementation project(":core:cas-server-core")
     testImplementation project(":core:cas-server-core-web")
+    testImplementation project(":core:cas-server-core-webflow")
+    testImplementation project(":core:cas-server-core-webflow-mfa")
     testImplementation project(":core:cas-server-core-cookie")
     testImplementation project(":core:cas-server-core-authentication")
+    testImplementation project(":core:cas-server-core-authentication-mfa")
     testImplementation project(":core:cas-server-core-tickets")
     testImplementation project(":core:cas-server-core-audit")
     testImplementation project(":core:cas-server-core-audit-api")

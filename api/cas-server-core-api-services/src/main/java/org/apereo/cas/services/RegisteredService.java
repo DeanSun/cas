@@ -2,11 +2,11 @@ package org.apereo.cas.services;
 
 import org.apereo.cas.authentication.principal.Response;
 import org.apereo.cas.authentication.principal.Service;
-import org.apereo.cas.authentication.principal.WebApplicationService;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.core.Ordered;
 
 import java.io.Serializable;
 import java.util.List;
@@ -36,17 +36,29 @@ public interface RegisteredService extends Serializable, Comparable<RegisteredSe
     RegisteredServiceExpirationPolicy getExpirationPolicy();
 
     /**
-     * Get the proxy policy rules for this service.
-     *
-     * @return the proxy policy
-     */
-    RegisteredServiceProxyPolicy getProxyPolicy();
-
-    /**
      * Get the authentication policy assigned to this service.
      * @return the policy
      */
     RegisteredServiceAuthenticationPolicy getAuthenticationPolicy();
+
+    /**
+     * Get service matching strategy used to evaluate
+     * given service identifiers against this service.
+     * @return the strategy
+     */
+    RegisteredServiceMatchingStrategy getMatchingStrategy();
+
+    /**
+     * Gets the public key associated with this service
+     * that is used to authorize the request by
+     * encrypting certain elements and attributes in
+     * the CAS validation protocol response, such as
+     * the PGT.
+     *
+     * @return the public key instance used to authorize the request
+     * @since 4.1
+     */
+    RegisteredServicePublicKey getPublicKey();
 
     /**
      * The unique identifier for this service.
@@ -64,7 +76,8 @@ public interface RegisteredService extends Serializable, Comparable<RegisteredSe
     long getId();
 
     /**
-     * Sets the identifier for this service. Use {@link #INITIAL_IDENTIFIER_VALUE} to indicate a branch new service definition.
+     * Sets the identifier for this service. Use {@link #INITIAL_IDENTIFIER_VALUE} to
+     * indicate a branch new service definition.
      *
      * @param id the numeric identifier for the service.
      */
@@ -76,14 +89,6 @@ public interface RegisteredService extends Serializable, Comparable<RegisteredSe
      * @return the name of the service.
      */
     String getName();
-
-    /**
-     * Returns a short theme name. Services do not need to have unique theme
-     * names.
-     *
-     * @return the theme name associated with this service.
-     */
-    String getTheme();
 
     /**
      * Returns the description of the service.
@@ -127,53 +132,25 @@ public interface RegisteredService extends Serializable, Comparable<RegisteredSe
     RegisteredServiceUsernameAttributeProvider getUsernameAttributeProvider();
 
     /**
-     * Get the acceptable usage policy linked to this application.
-     *
-     * @return an instance of {@link RegisteredServiceAcceptableUsagePolicy}
-     */
-    RegisteredServiceAcceptableUsagePolicy getAcceptableUsagePolicy();
-
-    /**
      * Gets multifactor authentication policy.
      *
      * @return the authentication policy
      */
-    RegisteredServiceMultifactorPolicy getMultifactorPolicy();
+    RegisteredServiceMultifactorPolicy getMultifactorAuthenticationPolicy();
 
     /**
-     * Gets proxy ticket expiration policy.
+     * Gets ticket granting ticket expiration policy.
      *
-     * @return the proxy ticket expiration policy
+     * @return the ticket granting ticket expiration policy
      */
-    RegisteredServiceProxyTicketExpirationPolicy getProxyTicketExpirationPolicy();
-
-    /**
-     * Gets proxy granting ticket expiration policy.
-     *
-     * @return the proxy granting ticket expiration policy
-     */
-    RegisteredServiceProxyGrantingTicketExpirationPolicy getProxyGrantingTicketExpirationPolicy();
-
-    /**
-     * Gets service ticket expiration policy.
-     *
-     * @return the service ticket expiration policy
-     */
-    RegisteredServiceServiceTicketExpirationPolicy getServiceTicketExpirationPolicy();
-
-    /**
-     * Gets SSO participation strategy.
-     *
-     * @return the service ticket expiration policy
-     */
-    RegisteredServiceSingleSignOnParticipationPolicy getSingleSignOnParticipationPolicy();
+    RegisteredServiceTicketGrantingTicketExpirationPolicy getTicketGrantingTicketExpirationPolicy();
 
     /**
      * Gets the set of handler names that must successfully authenticate credentials in order to access the service.
      * An empty set indicates that there are no requirements on particular authentication handlers; any will suffice.
      *
      * @return Non -null set of required handler names.
-     * @deprecated Since 6.2
+     * @deprecated Since 6.2, replaced by {@link org.apereo.cas.services.RegisteredServiceAuthenticationPolicy#getRequiredAuthenticationHandlers()}.
      */
     @Deprecated(since = "6.2.0")
     Set<String> getRequiredHandlers();
@@ -213,13 +190,6 @@ public interface RegisteredService extends Serializable, Comparable<RegisteredSe
     boolean matches(String serviceId);
 
     /**
-     * Returns the logout type of the service.
-     *
-     * @return the logout type of the service.
-     */
-    RegisteredServiceLogoutType getLogoutType();
-
-    /**
      * Gets the attribute filtering policy to determine
      * how attributes are to be filtered and released for
      * this service.
@@ -227,68 +197,6 @@ public interface RegisteredService extends Serializable, Comparable<RegisteredSe
      * @return the attribute release policy
      */
     RegisteredServiceAttributeReleasePolicy getAttributeReleasePolicy();
-
-    /**
-     * Gets the logo image associated with this service.
-     * The image mostly is served on the user interface
-     * to identify this requesting service during authentication.
-     *
-     * @return URL of the image
-     * @since 4.1
-     */
-    String getLogo();
-
-    /**
-     * Describes the canonical information url
-     * where this service is advertised and may provide
-     * help/guidance.
-     *
-     * @return the info url.
-     */
-    String getInformationUrl();
-
-    /**
-     * Links to the privacy policy of this service, if any.
-     *
-     * @return the link to privacy policy
-     */
-    String getPrivacyUrl();
-
-    /**
-     * Identifies the logout url that will be invoked
-     * upon sending single-logout callback notifications.
-     * This is an optional setting. When undefined, the service
-     * url as is defined by {@link #getServiceId()} will be used
-     * to handle logout invocations.
-     *
-     * @return the logout url for this service
-     * @since 4.1
-     */
-    String getLogoutUrl();
-
-    /**
-     * Identifies the redirect url that will be used
-     * when building a response to authentication requests.
-     * The url is ultimately used to carry the service ticket
-     * back to the application and will override the default
-     * url which is tracked by the {@link WebApplicationService#getOriginalUrl()}.
-     *
-     * @return the redirect url for this service
-     * @since 6.2
-     */
-    String getRedirectUrl();
-
-    /**
-     * Gets the public key associated with this service
-     * that is used to authorize the request by
-     * encrypting certain elements and attributes in
-     * the CAS validation protocol response, such as
-     * the PGT.
-     *
-     * @return the public key instance used to authorize the request
-     * @since 4.1
-     */
-    RegisteredServicePublicKey getPublicKey();
 
     /**
      * Describes extra metadata about the service; custom fields
@@ -310,6 +218,20 @@ public interface RegisteredService extends Serializable, Comparable<RegisteredSe
     List<RegisteredServiceContact> getContacts();
 
     /**
+     * Indicates the evaluation priority of this service definition.
+     * Works in combination with {@code #getEvaluationOrder()}, allowing
+     * registered services of the same category/type to be sorted and grouped
+     * first before evaluation order for each category. In other words,
+     * it acts as the first sort key for evaluating services.
+     *
+     * @return the evaluation priority
+     */
+    @JsonIgnore
+    default int getEvaluationPriority() {
+        return Ordered.LOWEST_PRECEDENCE;
+    }
+
+    /**
      * Gets friendly name of this service.
      * Typically describes the purpose of this service
      * and the return value is usually used for display purposes.
@@ -320,7 +242,7 @@ public interface RegisteredService extends Serializable, Comparable<RegisteredSe
     default String getFriendlyName() {
         return this.getClass().getSimpleName();
     }
-
+    
     /**
      * Initialize the registered service instance by defaulting fields to specific
      * values or object instances, etc.

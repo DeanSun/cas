@@ -11,6 +11,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.io.Serial;
 
 /**
  * This is {@link JpaMultifactorAuthenticationTrustRecord}.
@@ -23,6 +24,9 @@ import javax.persistence.Table;
 @Getter
 @DiscriminatorValue("JPA")
 public class JpaMultifactorAuthenticationTrustRecord extends MultifactorAuthenticationTrustRecord {
+    @Serial
+    private static final long serialVersionUID = -5834988860677211091L;
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator = "native")
     @GenericGenerator(name = "native", strategy = "native")

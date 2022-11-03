@@ -3,6 +3,7 @@ package org.apereo.cas.azure.ad.authentication;
 import org.apereo.cas.authentication.AuthenticationHandler;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
+import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.azure.ad.config.AzureActiveDirectoryAuthenticationConfiguration;
 import org.apereo.cas.config.CasAuthenticationEventExecutionPlanTestConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationConfiguration;
@@ -27,6 +28,7 @@ import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 import org.apereo.cas.services.RegisteredServiceTestUtils;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.util.MockWebServer;
+import org.apereo.cas.util.serialization.JacksonObjectMapperFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.aad.adal4j.AuthenticationResult;
@@ -48,6 +50,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * This is {@link AzureActiveDirectoryAuthenticationHandlerTests}.
@@ -85,10 +88,11 @@ import static org.junit.jupiter.api.Assertions.*;
         "cas.authn.attribute-repository.azure-active-directory[0].client-id=12345678-bc3b-4e2d-a9bf-bf6c7ded8b7e",
         "cas.authn.attribute-repository.azure-active-directory[0].client-secret=msdbdsf84d"
     })
-@Tag("Authentication")
+@Tag("AuthenticationHandler")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class AzureActiveDirectoryAuthenticationHandlerTests {
-    private static final ObjectMapper MAPPER = new ObjectMapper().findAndRegisterModules();
+    private static final ObjectMapper MAPPER = JacksonObjectMapperFactory.builder()
+        .defaultTypingEnabled(true).build().toObjectMapper();
 
     @Autowired
     private CasConfigurationProperties casProperties;
@@ -98,7 +102,7 @@ public class AzureActiveDirectoryAuthenticationHandlerTests {
     private List<IPersonAttributeDao> microsoftAzureActiveDirectoryAttributeRepositories;
 
     @Autowired
-    @Qualifier("servicesManager")
+    @Qualifier(ServicesManager.BEAN_NAME)
     private ServicesManager servicesManager;
 
     @Autowired
@@ -110,7 +114,7 @@ public class AzureActiveDirectoryAuthenticationHandlerTests {
         assertFalse(microsoftAzureActiveDirectoryAttributeRepositories.isEmpty());
         val c = CoreAuthenticationTestUtils.getCredentialsWithDifferentUsernameAndPassword(
             "castest@hotmail.onmicrosoft.com", "1234567890");
-        assertThrows(FailedLoginException.class, () -> microsoftAzureActiveDirectoryAuthenticationHandler.authenticate(c));
+        assertThrows(FailedLoginException.class, () -> microsoftAzureActiveDirectoryAuthenticationHandler.authenticate(c, mock(Service.class)));
     }
 
     @Test
@@ -123,7 +127,7 @@ public class AzureActiveDirectoryAuthenticationHandlerTests {
 
             val c = CoreAuthenticationTestUtils.getCredentialsWithDifferentUsernameAndPassword(
                 "castest@hotmail.onmicrosoft.com", "1234567890");
-            assertNotNull(handler.authenticate(c));
+            assertNotNull(handler.authenticate(c, mock(Service.class)));
         }
     }
 
@@ -137,7 +141,7 @@ public class AzureActiveDirectoryAuthenticationHandlerTests {
 
             val c = CoreAuthenticationTestUtils.getCredentialsWithDifferentUsernameAndPassword(
                 "castest@hotmail.onmicrosoft.com", "1234567890");
-            assertThrows(FailedLoginException.class, () -> handler.authenticate(c));
+            assertThrows(FailedLoginException.class, () -> handler.authenticate(c, mock(Service.class)));
         }
     }
 

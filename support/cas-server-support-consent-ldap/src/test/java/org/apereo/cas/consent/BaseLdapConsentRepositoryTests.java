@@ -4,8 +4,9 @@ import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.config.CasConsentLdapConfiguration;
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.services.AbstractRegisteredService;
+import org.apereo.cas.services.BaseRegisteredService;
 import org.apereo.cas.services.RegisteredServiceTestUtils;
+import org.apereo.cas.util.serialization.JacksonObjectMapperFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.unboundid.ldap.sdk.LDAPConnection;
@@ -17,7 +18,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -28,7 +28,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 /**
  * This is {@link BaseLdapConsentRepositoryTests}.
@@ -40,13 +39,13 @@ import static org.mockito.Mockito.*;
     CasConsentLdapConfiguration.class,
     BaseConsentRepositoryTests.SharedTestConfiguration.class
 })
-@Tag("Ldap")
 @Getter
 @Slf4j
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public abstract class BaseLdapConsentRepositoryTests extends BaseConsentRepositoryTests {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper().findAndRegisterModules();
+    private static final ObjectMapper MAPPER = JacksonObjectMapperFactory.builder()
+        .defaultTypingEnabled(false).build().toObjectMapper();
 
     private static final String ATTR_NAME = "description";
 
@@ -60,13 +59,21 @@ public abstract class BaseLdapConsentRepositoryTests extends BaseConsentReposito
 
     private static final Service SVC2 = RegisteredServiceTestUtils.getService2();
 
-    private static final AbstractRegisteredService REG_SVC2 = RegisteredServiceTestUtils.getRegisteredService(SVC2.getId());
+    private static final BaseRegisteredService REG_SVC2 = RegisteredServiceTestUtils.getRegisteredService(SVC2.getId());
 
     private static final String DEF_FILTER = "(objectClass=*)";
 
     @Autowired
-    @Qualifier("consentRepository")
+    protected CasConfigurationProperties casProperties;
+    
+    @Autowired
+    @Qualifier(ConsentRepository.BEAN_NAME)
     protected ConsentRepository repository;
+
+    @Override
+    protected String getUser() {
+        return USER_CN;
+    }
 
     @AfterEach
     public void cleanDecisions() {
@@ -89,21 +96,6 @@ public abstract class BaseLdapConsentRepositoryTests extends BaseConsentReposito
         } catch (final Exception e) {
             LOGGER.debug(e.getMessage(), e);
         }
-    }
-
-    @Test
-    public void verifyFailOps(@Autowired final CasConfigurationProperties casProperties) {
-        assertTrue(repository.findConsentDecisions().isEmpty());
-        assertNull(repository.storeConsentDecision(mock(ConsentDecision.class)));
-
-        val ldap = casProperties.getConsent().getLdap();
-        ldap.setConsentAttributeName("---");
-        ldap.setBaseDn(null);
-        assertTrue(repository.findConsentDecisions().isEmpty());
-
-        val decision = BUILDER.build(SVC, REG_SVC, USER_CN, ATTR);
-        decision.setId(1543);
-        assertNull(repository.storeConsentDecision(decision));
     }
 
     @Test

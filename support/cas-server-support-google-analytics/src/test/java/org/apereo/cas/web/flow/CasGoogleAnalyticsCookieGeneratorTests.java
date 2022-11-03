@@ -29,11 +29,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(classes = BaseCasGoogleAnalyticsTests.SharedTestConfiguration.class,
     properties = {
         "cas.google-analytics.cookie.name=CasGoogleCookie",
-        "cas.google-analytics.cookie.sameSitePolicy=strict",
+        "cas.google-analytics.cookie.same-site-policy=strict",
         "cas.tgc.cookie.same-site-policy=lax"
     })
 @EnableConfigurationProperties(CasConfigurationProperties.class)
-@Tag("Simple")
+@Tag("Cookie")
 public class CasGoogleAnalyticsCookieGeneratorTests {
 
     @Autowired
@@ -44,7 +44,7 @@ public class CasGoogleAnalyticsCookieGeneratorTests {
     private CasCookieBuilder casGoogleAnalyticsCookieGenerator;
 
     @Autowired
-    @Qualifier("ticketGrantingTicketCookieGenerator")
+    @Qualifier(CasCookieBuilder.BEAN_NAME_TICKET_GRANTING_COOKIE_BUILDER)
     private CasCookieBuilder ticketGrantingTicketCookieGenerator;
 
     @BeforeAll

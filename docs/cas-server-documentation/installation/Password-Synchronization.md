@@ -3,6 +3,7 @@ layout: default
 title: CAS - Password Synchronization
 category: Authentication
 ---
+{% include variables.html %}
 
 # Password Synchronization
 
@@ -12,19 +13,11 @@ CAS will attempt to capture the provided password and update destinations that a
 in CAS settings. Failing to synchronize an account password generally produces errors in the logs
 and the event is not considered a catastrophic failure.
 
-## Configuration
-
-To see the relevant list of CAS properties, please [review this guide](../configuration/Configuration-Properties.html#password-synchronization).
-
 ## LDAP
 
 Synchronize account passwords with one or more LDAP servers. Support is enabled by including the 
 following dependencies in the WAR overlay:
 
-```xml
-<dependency>
-    <groupId>org.apereo.cas</groupId>
-    <artifactId>cas-server-support-ldap</artifactId>
-    <version>${cas.version}</version>
-</dependency>
-```
+{% include_cached casmodule.html group="org.apereo.cas" module="cas-server-support-ldap" %}
+
+{% include_cached casproperties.html properties="cas.authn.password-sync.ldap" %}

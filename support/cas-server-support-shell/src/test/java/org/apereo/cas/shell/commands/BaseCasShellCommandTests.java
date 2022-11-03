@@ -9,9 +9,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.shell.Shell;
-import org.springframework.shell.SpringShellAutoConfiguration;
-import org.springframework.shell.jline.JLineShellAutoConfiguration;
-import org.springframework.shell.standard.StandardAPIAutoConfiguration;
+import org.springframework.shell.boot.JLineShellAutoConfiguration;
+import org.springframework.shell.boot.SpringShellAutoConfiguration;
+import org.springframework.shell.boot.StandardAPIAutoConfiguration;
+
 
 /**
  * This is {@link BaseCasShellCommandTests}.
@@ -25,7 +26,10 @@ import org.springframework.shell.standard.StandardAPIAutoConfiguration;
     JLineShellAutoConfiguration.class,
     StandardAPIAutoConfiguration.class,
     CasCommandLineShellConfiguration.class
-}, properties = "spring.shell.interactive.enabled=false")
+}, properties = {
+    "spring.main.allow-circular-references=true",
+    "spring.shell.interactive.enabled=false"
+})
 @ComponentScan(basePackages = "org.apereo.cas.shell.commands")
 @EnableAutoConfiguration
 public abstract class BaseCasShellCommandTests {

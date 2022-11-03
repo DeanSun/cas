@@ -9,6 +9,8 @@ import org.apereo.cas.ticket.registry.TicketRegistry;
 import org.apereo.cas.token.JwtBuilder;
 import org.apereo.cas.web.BaseCasActuatorEndpoint;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.boot.actuate.endpoint.annotation.DeleteOperation;
@@ -31,6 +33,7 @@ import java.util.stream.Collectors;
 public class OAuth20TokenManagementEndpoint extends BaseCasActuatorEndpoint {
 
     private final TicketRegistry ticketRegistry;
+
     private final JwtBuilder accessTokenJwtBuilder;
 
     public OAuth20TokenManagementEndpoint(final CasConfigurationProperties casProperties,
@@ -47,6 +50,7 @@ public class OAuth20TokenManagementEndpoint extends BaseCasActuatorEndpoint {
      * @return the access tokens
      */
     @ReadOperation
+    @Operation(summary = "Get access and/or refresh tokens")
     public Collection<Ticket> getTokens() {
         return ticketRegistry.getTickets(ticket -> (ticket instanceof OAuth20AccessToken || ticket instanceof OAuth20RefreshToken) && !ticket.isExpired())
             .sorted(Comparator.comparing(Ticket::getId))
@@ -61,30 +65,26 @@ public class OAuth20TokenManagementEndpoint extends BaseCasActuatorEndpoint {
      * @return the access token
      */
     @ReadOperation
+    @Operation(summary = "Get single token by id", parameters = @Parameter(name = "token", required = true))
     public Ticket getToken(@Selector final String token) {
-        val ticketId = extractAccessTokenFrom(token);
-        var ticket = (Ticket) ticketRegistry.getTicket(ticketId, OAuth20AccessToken.class);
-        if (ticket == null) {
-            ticket = ticketRegistry.getTicket(ticketId, OAuth20RefreshToken.class);
-        }
-        if (ticket == null) {
-            LOGGER.debug("Ticket [{}] is not found", ticketId);
+        try {
+            val ticketId = extractAccessTokenFrom(token);
+            return ticketRegistry.getTicket(ticketId, Ticket.class);
+        } catch (final Exception e) {
+            LOGGER.debug("Ticket [{}] is has expired or cannot be found", token);
             return null;
         }
-        if (ticket.isExpired()) {
-            LOGGER.debug("Ticket [{}] is has expired", ticketId);
-            return null;
-        }
-        return ticket;
     }
 
     /**
      * Delete access token.
      *
      * @param ticketId the ticket id
+     * @throws Exception the exception
      */
     @DeleteOperation
-    public void deleteToken(@Selector final String ticketId) {
+    @Operation(summary = "Delete token by id", parameters = @Parameter(name = "ticketId", required = true))
+    public void deleteToken(@Selector final String ticketId) throws Exception {
         val ticket = getToken(ticketId);
         if (ticket != null) {
             ticketRegistry.deleteTicket(ticket.getId());

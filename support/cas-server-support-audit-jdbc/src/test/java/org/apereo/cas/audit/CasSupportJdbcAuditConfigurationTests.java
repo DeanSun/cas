@@ -9,10 +9,13 @@ import org.apereo.cas.configuration.CasConfigurationProperties;
 
 import lombok.Getter;
 import org.apereo.inspektr.audit.AuditTrailManager;
+import org.apereo.inspektr.common.Cleanable;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
@@ -29,14 +32,27 @@ import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
     CasHibernateJpaConfiguration.class,
     CasCoreUtilConfiguration.class,
     AopAutoConfiguration.class,
+    WebMvcAutoConfiguration.class,
     RefreshAutoConfiguration.class
-}, properties = "cas.audit.jdbc.asynchronous=false")
+}, properties = {
+    "cas.audit.jdbc.schedule.enabled=true",
+    "cas.audit.jdbc.asynchronous=false"
+})
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @Getter
 @Tag("JDBC")
 public class CasSupportJdbcAuditConfigurationTests extends BaseAuditConfigurationTests {
 
     @Autowired
+    @Qualifier("inspektrAuditTrailCleaner")
+    private Cleanable inspektrAuditTrailCleaner;
+
+    @Autowired
     @Qualifier("jdbcAuditTrailManager")
     private AuditTrailManager auditTrailManager;
+
+    @Test
+    public void verifyCleaner() {
+        inspektrAuditTrailCleaner.clean();
+    }
 }

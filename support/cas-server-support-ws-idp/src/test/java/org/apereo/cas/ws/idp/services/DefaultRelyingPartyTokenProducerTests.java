@@ -4,28 +4,32 @@ import org.apereo.cas.BaseCoreWsSecurityIdentityProviderConfigurationTests;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.authentication.SecurityTokenServiceClient;
 import org.apereo.cas.authentication.SecurityTokenServiceClientBuilder;
-import org.apereo.cas.configuration.CasConfigurationProperties;
+import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
 import org.apereo.cas.services.ServicesManager;
+import org.apereo.cas.ticket.TicketValidator;
 import org.apereo.cas.ws.idp.WSFederationClaims;
 import org.apereo.cas.ws.idp.web.WSFederationRequest;
 
 import lombok.val;
+import org.apache.cxf.binding.soap.SoapFault;
+import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.ws.security.tokenstore.SecurityToken;
-import org.jasig.cas.client.authentication.AttributePrincipalImpl;
-import org.jasig.cas.client.validation.Assertion;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.test.context.TestPropertySource;
 
+import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -36,44 +40,70 @@ import static org.mockito.Mockito.*;
  * @author Misagh Moayyed
  * @since 6.3.0
  */
-@SpringBootTest(classes = {
-    DefaultRelyingPartyTokenProducerTests.DefaultRelyingPartyTokenProducerTestConfiguration.class,
-    BaseCoreWsSecurityIdentityProviderConfigurationTests.SharedTestConfiguration.class
-},
-    properties = {
-        "cas.authn.wsfed-idp.idp.realm=urn:org:apereo:cas:ws:idp:realm-CAS",
-        "cas.authn.wsfed-idp.idp.realm-name=CAS",
-
-        "cas.authn.wsfed-idp.sts.signing-keystore-file=classpath:ststrust.jks",
-        "cas.authn.wsfed-idp.sts.signing-keystore-password=storepass",
-
-        "cas.authn.wsfed-idp.sts.encryption-keystore-file=classpath:stsencrypt.jks",
-        "cas.authn.wsfed-idp.sts.encryption-keystore-password=storepass",
-
-        "cas.authn.wsfed-idp.sts.subject-name-id-format=unspecified",
-        "cas.authn.wsfed-idp.sts.encrypt-tokens=true",
-
-        "cas.authn.wsfed-idp.sts.custom-claims=uid,cn",
-
-        "cas.authn.wsfed-idp.sts.realm.keystore-file=stsrealm_a.jks",
-        "cas.authn.wsfed-idp.sts.realm.keystore-password=storepass",
-        "cas.authn.wsfed-idp.sts.realm.keystore-alias=realma",
-        "cas.authn.wsfed-idp.sts.realm.key-password=realma",
-        "cas.authn.wsfed-idp.sts.realm.issuer=CAS"
-    })
-@EnableConfigurationProperties(CasConfigurationProperties.class)
 @Tag("WSFederation")
-public class DefaultRelyingPartyTokenProducerTests {
+@Import(DefaultRelyingPartyTokenProducerTests.DefaultRelyingPartyTokenProducerTestConfiguration.class)
+@TestPropertySource(properties = "cas.authn.wsfed-idp.sts.custom-claims=my-custom-claim,second-custom-claim")
+public class DefaultRelyingPartyTokenProducerTests extends BaseCoreWsSecurityIdentityProviderConfigurationTests {
     @Autowired
     @Qualifier("wsFederationRelyingPartyTokenProducer")
     private WSFederationRelyingPartyTokenProducer wsFederationRelyingPartyTokenProducer;
 
     @Autowired
-    @Qualifier("servicesManager")
+    @Qualifier(ServicesManager.BEAN_NAME)
     private ServicesManager servicesManager;
 
     @Test
-    public void verifyOperation() {
+    public void verifyFailsOperation() {
+        val request = new MockHttpServletRequest();
+
+        val registeredService = new WSFederationRegisteredService();
+        registeredService.setRealm("CAS");
+        registeredService.setServiceId("http://app.example.org/wsfed-idp");
+        registeredService.setName("WSFED App");
+        registeredService.setId(100);
+        registeredService.setAppliesTo("FatalError");
+        registeredService.setWsdlLocation("classpath:wsdl/ws-trust-1.4-service.wsdl");
+        servicesManager.save(registeredService);
+
+        val assertion = getValidationResult();
+        val securityToken = mock(SecurityToken.class);
+        assertThrows(SoapFault.class, () -> wsFederationRelyingPartyTokenProducer.produce(securityToken, registeredService,
+            WSFederationRequest.of(request), request, assertion));
+    }
+
+    private static TicketValidator.ValidationResult getValidationResult(final Map<String, List<Object>> attributes) {
+        val principal = PrincipalFactoryUtils.newPrincipalFactory().createPrincipal("casuser", attributes);
+        val assertion = mock(TicketValidator.ValidationResult.class);
+        when(assertion.getPrincipal()).thenReturn(principal);
+        return assertion;
+    }
+
+    private static TicketValidator.ValidationResult getValidationResult() {
+        return getValidationResult(CoreAuthenticationTestUtils.getAttributes());
+    }
+
+    @Test
+    public void verifyRequestFailsOperation() {
+        val request = new MockHttpServletRequest();
+
+        val registeredService = new WSFederationRegisteredService();
+        registeredService.setRealm("CAS");
+        registeredService.setServiceId("http://app.example.org/wsfed-idp");
+        registeredService.setName("WSFED App");
+        registeredService.setId(100);
+        registeredService.setAppliesTo("RequestFailed");
+        registeredService.setWsdlLocation("classpath:wsdl/ws-trust-1.4-service.wsdl");
+        servicesManager.save(registeredService);
+
+        val assertion = getValidationResult();
+        val securityToken = mock(SecurityToken.class);
+        assertThrows(IllegalArgumentException.class, () -> wsFederationRelyingPartyTokenProducer.produce(securityToken, registeredService,
+            WSFederationRequest.of(request), request, assertion));
+    }
+
+
+    @Test
+    public void verifyOperation() throws Exception {
         val request = new MockHttpServletRequest();
 
         val registeredService = new WSFederationRegisteredService();
@@ -88,10 +118,9 @@ public class DefaultRelyingPartyTokenProducerTests {
         val attributes = CoreAuthenticationTestUtils.getAttributes();
         attributes.put(WSFederationClaims.COMMON_NAME.name(), List.of("common-name-wsfed"));
         attributes.put(WSFederationClaims.GIVEN_NAME.getUri(), List.of("common-name-wsfed"));
+        attributes.put("my-custom-claim", List.of("custom-claim-value"));
 
-        val principal = new AttributePrincipalImpl("casuser", attributes);
-        val assertion = mock(Assertion.class);
-        when(assertion.getPrincipal()).thenReturn(principal);
+        val assertion = getValidationResult(attributes);
 
         val securityToken = mock(SecurityToken.class);
         val result = wsFederationRelyingPartyTokenProducer.produce(securityToken, registeredService,
@@ -99,7 +128,7 @@ public class DefaultRelyingPartyTokenProducerTests {
         assertEquals("<SecurityToken id=\"abcdefgh123456\"/>", result);
     }
 
-    @TestConfiguration("DefaultRelyingPartyTokenProducerTestConfiguration")
+    @TestConfiguration(value = "DefaultRelyingPartyTokenProducerTestConfiguration", proxyBeanMethods = false)
     public static class DefaultRelyingPartyTokenProducerTestConfiguration {
         @Bean
         public SecurityTokenServiceClientBuilder securityTokenServiceClientBuilder() throws Exception {
@@ -114,7 +143,12 @@ public class DefaultRelyingPartyTokenProducerTests {
             val db = dbf.newDocumentBuilder();
             val elementResponse = db.newDocument().createElement("SecurityToken");
             elementResponse.setAttribute("id", "abcdefgh123456");
-            when(client.requestSecurityTokenResponse(anyString())).thenReturn(elementResponse);
+            when(client.requestSecurityTokenResponse(ArgumentMatchers.eq("CAS"))).thenReturn(elementResponse);
+            when(client.requestSecurityTokenResponse(ArgumentMatchers.eq("FatalError")))
+                .thenThrow(new SoapFault("error", Fault.FAULT_CODE_SERVER));
+            when(client.requestSecurityTokenResponse(ArgumentMatchers.eq("RequestFailed")))
+                .thenThrow(new SoapFault("error", new QName("RequestFailed")));
+
             return builder;
         }
     }

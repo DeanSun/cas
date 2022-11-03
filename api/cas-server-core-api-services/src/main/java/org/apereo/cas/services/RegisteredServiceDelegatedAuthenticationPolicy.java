@@ -24,11 +24,18 @@ public interface RegisteredServiceDelegatedAuthenticationPolicy extends Serializ
     Collection<String> getAllowedProviders();
 
     /**
+     * Specify how the delegated idp provider should be selected for authentication
+     * dynamically typically using an external script.
+     * @return strategy type
+     */
+    String getSelectionStrategy();
+    
+    /**
      * Indicate whether authentication should be exclusively
      * limited to allowed providers, disabling other forms of
      * authentication such as username/password, etc.
      *
-     * @return true/false
+     * @return true /false
      */
     boolean isExclusive();
 
@@ -36,7 +43,7 @@ public interface RegisteredServiceDelegatedAuthenticationPolicy extends Serializ
      * If no providers are defined, indicates whether or not access strategy should
      * authorize the request.
      *
-     * @return true/false
+     * @return true /false
      */
     boolean isPermitUndefined();
 
@@ -45,10 +52,20 @@ public interface RegisteredServiceDelegatedAuthenticationPolicy extends Serializ
      *
      * @param provider          the provider
      * @param registeredService the registered service
-     * @return true/false
+     * @return true /false
      */
     @JsonIgnore
     default boolean isProviderAllowed(final String provider, final RegisteredService registeredService) {
         return true;
     }
+
+    /**
+     * Indicates whether use of the allowed providers should be required and forced.
+     * @return true if the policy is exclusive and, either provides are defined or undefined providers are not allowed.
+     */
+    @JsonIgnore
+    default boolean isProviderRequired() {
+        return isExclusive() && (!getAllowedProviders().isEmpty() || (getAllowedProviders().isEmpty() && !isPermitUndefined()));
+    }
+
 }

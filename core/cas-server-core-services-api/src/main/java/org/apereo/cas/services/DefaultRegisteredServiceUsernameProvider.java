@@ -6,7 +6,10 @@ import org.apereo.cas.authentication.principal.Service;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.Serial;
 
 /**
  * Resolves the username for the service to be the default principal id.
@@ -17,13 +20,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@Accessors(chain = true)
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public class DefaultRegisteredServiceUsernameProvider extends BaseRegisteredServiceUsernameAttributeProvider {
 
+    @Serial
     private static final long serialVersionUID = 5823989148794052951L;
 
     public DefaultRegisteredServiceUsernameProvider(final String canonicalizationMode) {
-        super(canonicalizationMode, false);
+        super(canonicalizationMode, false, null);
     }
 
     @Override

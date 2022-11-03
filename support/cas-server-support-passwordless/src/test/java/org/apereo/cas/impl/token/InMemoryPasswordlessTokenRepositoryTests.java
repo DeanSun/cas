@@ -17,16 +17,18 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.2.0
  */
-@Tag("Simple")
+@Tag("PasswordOps")
 public class InMemoryPasswordlessTokenRepositoryTests extends BasePasswordlessUserAccountStoreTests {
     private static final String CAS_USER = "casuser";
 
     @Autowired
-    @Qualifier("passwordlessTokenRepository")
+    @Qualifier(PasswordlessTokenRepository.BEAN_NAME)
     private PasswordlessTokenRepository repository;
 
     @Test
     public void verifyToken() {
+        repository.clean();
+        
         val token = repository.createToken(CAS_USER);
         assertTrue(repository.findToken(CAS_USER).isEmpty());
 

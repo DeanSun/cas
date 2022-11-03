@@ -20,11 +20,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.2.0
  */
-@Import({
-    CasCaptchaConfiguration.class,
-    BaseWebflowConfigurerTests.SharedTestConfiguration.class
-})
-@Tag("Webflow")
+@Import(CasCaptchaConfiguration.class)
+@Tag("WebflowConfig")
 public class CasCaptchaWebflowConfigurerTests extends BaseWebflowConfigurerTests {
     @Test
     public void verifyOperation() {

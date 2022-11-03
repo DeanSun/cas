@@ -10,6 +10,7 @@ import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.Serial;
 
 /**
  * Multifactor Bypass provider based on Credentials.
@@ -19,6 +20,7 @@ import javax.servlet.http.HttpServletRequest;
  */
 @Slf4j
 public class CredentialMultifactorAuthenticationProviderBypassEvaluator extends BaseMultifactorAuthenticationProviderBypassEvaluator {
+    @Serial
     private static final long serialVersionUID = -1233888418344342672L;
 
     private final MultifactorAuthenticationProviderBypassProperties bypassProperties;
@@ -52,7 +54,6 @@ public class CredentialMultifactorAuthenticationProviderBypassEvaluator extends 
             LOGGER.debug("Bypass rules for credential types [{}] indicate the request may be ignored", bypassProperties.getCredentialClassType());
             return false;
         }
-
         return true;
     }
 }

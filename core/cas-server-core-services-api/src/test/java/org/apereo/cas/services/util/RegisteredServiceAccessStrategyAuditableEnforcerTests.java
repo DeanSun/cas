@@ -1,12 +1,15 @@
 package org.apereo.cas.services.util;
 
 import org.apereo.cas.audit.AuditableContext;
+import org.apereo.cas.audit.AuditableExecutionResult;
 import org.apereo.cas.authentication.Authentication;
 import org.apereo.cas.authentication.AuthenticationResult;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.authentication.principal.Service;
+import org.apereo.cas.configuration.CasConfigurationProperties;
+import org.apereo.cas.services.CasRegisteredService;
 import org.apereo.cas.services.DefaultRegisteredServiceAccessStrategy;
-import org.apereo.cas.services.RegexRegisteredService;
+import org.apereo.cas.services.RegisteredService;
 import org.apereo.cas.services.RegisteredServiceAccessStrategyAuditableEnforcer;
 import org.apereo.cas.ticket.ServiceTicket;
 import org.apereo.cas.ticket.TicketGrantingTicket;
@@ -15,6 +18,7 @@ import lombok.val;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.core.io.ClassPathResource;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,19 +37,38 @@ import static org.mockito.Mockito.*;
 public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
 
     @Test
+    public void verifyGroovyScriptAccessStrategy() {
+        val service = createRegisteredService(true);
+        val context = AuditableContext.builder().registeredService(service).build();
+        val props = new CasConfigurationProperties();
+        props.getAccessStrategy().getGroovy().setLocation(new ClassPathResource("GroovyAccessStrategy.groovy"));
+        val result = executeAccessStrategy(props, context);
+        assertTrue(result.isExecutionFailure());
+        assertTrue(result.getException().isPresent());
+    }
+
+    @Test
     public void verifyRegisteredServicePresentAndEnabled() {
         val service = createRegisteredService(true);
         val context = AuditableContext.builder().registeredService(service).build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertFalse(result.isExecutionFailure());
         assertFalse(result.getException().isPresent());
+    }
+
+    private static AuditableExecutionResult executeAccessStrategy(final CasConfigurationProperties properties, final AuditableContext context) {
+        return new RegisteredServiceAccessStrategyAuditableEnforcer(properties).execute(context);
+    }
+
+    private static AuditableExecutionResult executeAccessStrategy(final AuditableContext context) {
+        return executeAccessStrategy(new CasConfigurationProperties(), context);
     }
 
     @Test
     public void verifyRegisteredServicePresentButDisabled() {
         val service = createRegisteredService(false);
         val context = AuditableContext.builder().registeredService(service).build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertTrue(result.isExecutionFailure());
         assertTrue(result.getException().isPresent());
     }
@@ -57,7 +80,7 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
             .registeredService(service)
             .service(createService())
             .build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertFalse(result.isExecutionFailure());
         assertFalse(result.getException().isPresent());
     }
@@ -69,7 +92,7 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
             .registeredService(service)
             .service(createService())
             .build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertTrue(result.isExecutionFailure());
         assertTrue(result.getException().isPresent());
     }
@@ -82,7 +105,7 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
             .service(createService())
             .authentication(createAuthentication())
             .build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertFalse(result.isExecutionFailure());
         assertFalse(result.getException().isPresent());
     }
@@ -95,7 +118,7 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
             .service(createService())
             .authentication(createAuthentication())
             .build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertTrue(result.isExecutionFailure());
         assertTrue(result.getException().isPresent());
     }
@@ -109,7 +132,7 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
             .service(createService())
             .authentication(createAuthentication())
             .build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertTrue(result.isExecutionFailure());
         assertTrue(result.getException().isPresent());
     }
@@ -123,7 +146,7 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
             .service(createService())
             .authentication(createAuthentication())
             .build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertFalse(result.isExecutionFailure());
         assertFalse(result.getException().isPresent());
     }
@@ -136,7 +159,7 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
             .service(createService())
             .ticketGrantingTicket(createTicketGrantingTicket())
             .build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertFalse(result.isExecutionFailure());
         assertFalse(result.getException().isPresent());
     }
@@ -149,7 +172,7 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
             .service(createService())
             .ticketGrantingTicket(createTicketGrantingTicket())
             .build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertTrue(result.isExecutionFailure());
         assertTrue(result.getException().isPresent());
     }
@@ -163,7 +186,7 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
             .service(createService())
             .ticketGrantingTicket(createTicketGrantingTicket())
             .build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertTrue(result.isExecutionFailure());
         assertTrue(result.getException().isPresent());
     }
@@ -177,7 +200,7 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
             .service(createService())
             .ticketGrantingTicket(createTicketGrantingTicket())
             .build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertFalse(result.isExecutionFailure());
         assertFalse(result.getException().isPresent());
     }
@@ -190,7 +213,7 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
             .serviceTicket(createServiceTicket())
             .authenticationResult(createAuthenticationResult())
             .build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertFalse(result.isExecutionFailure());
         assertFalse(result.getException().isPresent());
     }
@@ -203,7 +226,7 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
             .serviceTicket(createServiceTicket())
             .authenticationResult(createAuthenticationResult())
             .build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertTrue(result.isExecutionFailure());
         assertTrue(result.getException().isPresent());
     }
@@ -217,7 +240,7 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
             .serviceTicket(createServiceTicket())
             .authenticationResult(createAuthenticationResult())
             .build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertTrue(result.isExecutionFailure());
         assertTrue(result.getException().isPresent());
     }
@@ -231,7 +254,7 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
             .serviceTicket(createServiceTicket())
             .authenticationResult(createAuthenticationResult())
             .build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertFalse(result.isExecutionFailure());
         assertFalse(result.getException().isPresent());
     }
@@ -239,13 +262,13 @@ public class RegisteredServiceAccessStrategyAuditableEnforcerTests {
     @Test
     public void verifyExceptionNotThrown() {
         val context = AuditableContext.builder().build();
-        val result = new RegisteredServiceAccessStrategyAuditableEnforcer().execute(context);
+        val result = executeAccessStrategy(context);
         assertTrue(result.isExecutionFailure());
         assertTrue(result.getException().isPresent());
     }
 
-    private static RegexRegisteredService createRegisteredService(final boolean enabled) {
-        val service = new RegexRegisteredService();
+    private static RegisteredService createRegisteredService(final boolean enabled) {
+        val service = new CasRegisteredService();
         val accessStrategy = new DefaultRegisteredServiceAccessStrategy();
         accessStrategy.setEnabled(enabled);
         service.setAccessStrategy(accessStrategy);

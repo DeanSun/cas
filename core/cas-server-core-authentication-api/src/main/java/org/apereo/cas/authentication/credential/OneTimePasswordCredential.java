@@ -8,6 +8,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.io.Serial;
+
 /**
  * Describes a one-time-password credential that contains an optional unique identifier and required password.
  * The primary difference between this component and {@link UsernamePasswordCredential} is that the username/ID is optional
@@ -25,9 +27,7 @@ import lombok.ToString;
 @ToString(callSuper = true, exclude = "password")
 public class OneTimePasswordCredential extends BasicIdentifiableCredential {
 
-    /**
-     * Serialization version marker.
-     */
+    @Serial
     private static final long serialVersionUID = 1892587671827699709L;
 
     /**
@@ -36,7 +36,8 @@ public class OneTimePasswordCredential extends BasicIdentifiableCredential {
     private String password;
 
     @JsonCreator
-    public OneTimePasswordCredential(@JsonProperty("id") final String id, @JsonProperty("password") final String password) {
+    public OneTimePasswordCredential(@JsonProperty("id") final String id,
+                                     @JsonProperty("password") final String password) {
         super(id);
         this.password = password;
     }

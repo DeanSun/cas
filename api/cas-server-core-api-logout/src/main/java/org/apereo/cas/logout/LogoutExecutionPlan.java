@@ -15,6 +15,10 @@ import java.util.Collection;
  * @since 5.1.0
  */
 public interface LogoutExecutionPlan {
+    /**
+     * Default implementation bean name.
+     */
+    String BEAN_NAME = "logoutExecutionPlan";
 
     /**
      * Register logout handler.
@@ -33,11 +37,23 @@ public interface LogoutExecutionPlan {
     }
 
     /**
+     * Register logout redirection strategy.
+     *
+     * @param strategy the strategy
+     */
+    default void registerLogoutRedirectionStrategy(final LogoutRedirectionStrategy strategy) {
+    }
+
+    /**
      * Gets logout handlers.
      *
      * @return the logout handlers
      */
-    default Collection<LogoutPostProcessor> getLogoutPostProcessor() {
+    default Collection<LogoutPostProcessor> getLogoutPostProcessors() {
+        return new ArrayList<>(0);
+    }
+
+    default Collection<LogoutRedirectionStrategy> getLogoutRedirectionStrategies() {
         return new ArrayList<>(0);
     }
 

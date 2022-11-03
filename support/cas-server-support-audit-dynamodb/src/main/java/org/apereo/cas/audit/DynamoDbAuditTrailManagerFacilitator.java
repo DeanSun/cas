@@ -1,36 +1,31 @@
 package org.apereo.cas.audit;
 
 import org.apereo.cas.configuration.model.support.dynamodb.AuditDynamoDbProperties;
+import org.apereo.cas.dynamodb.DynamoDbQueryBuilder;
+import org.apereo.cas.dynamodb.DynamoDbTableUtils;
+import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.DateTimeUtils;
-import org.apereo.cas.util.LoggingUtils;
+import org.apereo.cas.util.function.FunctionUtils;
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
-import com.amazonaws.services.dynamodbv2.model.ComparisonOperator;
-import com.amazonaws.services.dynamodbv2.model.Condition;
-import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
-import com.amazonaws.services.dynamodbv2.model.DeleteTableRequest;
-import com.amazonaws.services.dynamodbv2.model.DescribeTableRequest;
-import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
-import com.amazonaws.services.dynamodbv2.model.KeyType;
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
-import com.amazonaws.services.dynamodbv2.model.PutItemRequest;
-import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
-import com.amazonaws.services.dynamodbv2.model.ScanRequest;
-import com.amazonaws.services.dynamodbv2.util.TableUtils;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.lang3.StringUtils;
 import org.apereo.inspektr.audit.AuditActionContext;
+import org.apereo.inspektr.audit.AuditTrailManager;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.ComparisonOperator;
+import software.amazon.awssdk.services.dynamodb.model.KeySchemaElement;
+import software.amazon.awssdk.services.dynamodb.model.KeyType;
+import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
 
 import java.time.LocalDate;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,14 +38,8 @@ import java.util.stream.Collectors;
  * @since 6.1.0
  */
 @Slf4j
-@Getter
-@RequiredArgsConstructor
-@SuppressWarnings("JdkObsolete")
-public class DynamoDbAuditTrailManagerFacilitator {
-    private final AuditDynamoDbProperties dynamoDbProperties;
-
-    private final AmazonDynamoDB amazonDynamoDBClient;
-
+@SuppressWarnings("JavaUtilDate")
+public record DynamoDbAuditTrailManagerFacilitator(AuditDynamoDbProperties dynamoDbProperties, DynamoDbClient amazonDynamoDBClient) {
     /**
      * Build table attribute values map.
      *
@@ -59,14 +48,16 @@ public class DynamoDbAuditTrailManagerFacilitator {
      */
     private static Map<String, AttributeValue> buildTableAttributeValuesMap(final AuditActionContext record) {
         val values = new HashMap<String, AttributeValue>();
-        values.put(ColumnNames.PRINCIPAL.getColumnName(), new AttributeValue(record.getPrincipal()));
-        values.put(ColumnNames.CLIENT_IP_ADDRESS.getColumnName(), new AttributeValue(record.getClientIpAddress()));
-        values.put(ColumnNames.SERVER_IP_ADDRESS.getColumnName(), new AttributeValue(record.getServerIpAddress()));
-        values.put(ColumnNames.RESOURCE_OPERATED_UPON.getColumnName(), new AttributeValue(record.getResourceOperatedUpon()));
-        values.put(ColumnNames.APPLICATION_CODE.getColumnName(), new AttributeValue(record.getApplicationCode()));
-        values.put(ColumnNames.ACTION_PERFORMED.getColumnName(), new AttributeValue(record.getActionPerformed()));
+        values.put(ColumnNames.PRINCIPAL.getColumnName(), AttributeValue.builder().s(record.getPrincipal()).build());
+        values.put(ColumnNames.CLIENT_IP_ADDRESS.getColumnName(), AttributeValue.builder().s(record.getClientIpAddress()).build());
+        values.put(ColumnNames.SERVER_IP_ADDRESS.getColumnName(), AttributeValue.builder().s(record.getServerIpAddress()).build());
+        values.put(ColumnNames.RESOURCE_OPERATED_UPON.getColumnName(), AttributeValue.builder().s(record.getResourceOperatedUpon()).build());
+        values.put(ColumnNames.APPLICATION_CODE.getColumnName(), AttributeValue.builder().s(record.getApplicationCode()).build());
+        values.put(ColumnNames.ACTION_PERFORMED.getColumnName(), AttributeValue.builder().s(record.getActionPerformed()).build());
+        values.put(ColumnNames.USER_AGENT.getColumnName(),
+            AttributeValue.builder().s(StringUtils.defaultString(record.getUserAgent(), "N/A")).build());
         val time = record.getWhenActionWasPerformed().getTime();
-        values.put(ColumnNames.WHEN_ACTION_PERFORMED.getColumnName(), new AttributeValue(String.valueOf(time)));
+        values.put(ColumnNames.WHEN_ACTION_PERFORMED.getColumnName(), AttributeValue.builder().s(String.valueOf(time)).build());
         LOGGER.debug("Created attribute values [{}] based on [{}]", values, record);
         return values;
     }
@@ -76,26 +67,19 @@ public class DynamoDbAuditTrailManagerFacilitator {
      *
      * @param deleteTables the delete tables
      */
-    @SneakyThrows
     public void createTable(final boolean deleteTables) {
-        val request = new CreateTableRequest()
-            .withAttributeDefinitions(new AttributeDefinition(ColumnNames.PRINCIPAL.getColumnName(), ScalarAttributeType.S))
-            .withKeySchema(new KeySchemaElement(ColumnNames.PRINCIPAL.getColumnName(), KeyType.HASH))
-            .withProvisionedThroughput(new ProvisionedThroughput(dynamoDbProperties.getReadCapacity(),
-                dynamoDbProperties.getWriteCapacity())).withTableName(dynamoDbProperties.getTableName());
-        if (deleteTables) {
-            val delete = new DeleteTableRequest(dynamoDbProperties.getTableName());
-            LOGGER.debug("Sending delete request [{}] to remove table if necessary", delete);
-            TableUtils.deleteTableIfExists(amazonDynamoDBClient, delete);
-        }
-        LOGGER.debug("Sending delete request [{}] to create table", request);
-        TableUtils.createTableIfNotExists(amazonDynamoDBClient, request);
-        LOGGER.debug("Waiting until table [{}] becomes active...", request.getTableName());
-        TableUtils.waitUntilActive(amazonDynamoDBClient, request.getTableName());
-        val describeTableRequest = new DescribeTableRequest().withTableName(request.getTableName());
-        LOGGER.debug("Sending request [{}] to obtain table description...", describeTableRequest);
-        val tableDescription = amazonDynamoDBClient.describeTable(describeTableRequest).getTable();
-        LOGGER.debug("Located newly created table with description: [{}]", tableDescription);
+        FunctionUtils.doUnchecked(param -> {
+            val attributes = List.of(AttributeDefinition.builder()
+                .attributeName(ColumnNames.PRINCIPAL.getColumnName())
+                .attributeType(ScalarAttributeType.S)
+                .build());
+            val schema = List.of(KeySchemaElement.builder()
+                .attributeName(ColumnNames.PRINCIPAL.getColumnName())
+                .keyType(KeyType.HASH)
+                .build());
+            DynamoDbTableUtils.createTable(amazonDynamoDBClient, dynamoDbProperties,
+                dynamoDbProperties.getTableName(), deleteTables, attributes, schema);
+        });
     }
 
     /**
@@ -105,7 +89,7 @@ public class DynamoDbAuditTrailManagerFacilitator {
      */
     public void save(final AuditActionContext record) {
         val values = buildTableAttributeValuesMap(record);
-        val putItemRequest = new PutItemRequest(dynamoDbProperties.getTableName(), values);
+        val putItemRequest = PutItemRequest.builder().tableName(dynamoDbProperties.getTableName()).item(values).build();
         LOGGER.debug("Submitting put request [{}] for record [{}]", putItemRequest, record);
         val putItemResult = amazonDynamoDBClient.putItem(putItemRequest);
         LOGGER.debug("Record added with result [{}]", putItemResult);
@@ -118,59 +102,51 @@ public class DynamoDbAuditTrailManagerFacilitator {
         createTable(true);
     }
 
+
     /**
      * Gets audit records.
      *
-     * @param localDate the local date
-     * @return the audit records since
+     * @param whereClause the where clause
+     * @return the audit records
      */
-    @SuppressWarnings("JdkObsolete")
-    public Set<? extends AuditActionContext> getAuditRecordsSince(final LocalDate localDate) {
-        val keys = new HashMap<String, AttributeValue>();
+    @SuppressWarnings("JavaUtilDate")
+    public Set<? extends AuditActionContext> getAuditRecords(final Map<AuditTrailManager.WhereClauseFields, Object> whereClause) {
+        val localDate = (LocalDate) whereClause.get(AuditTrailManager.WhereClauseFields.DATE);
         val time = DateTimeUtils.dateOf(localDate).getTime();
-        keys.put(ColumnNames.WHEN_ACTION_PERFORMED.getColumnName(), new AttributeValue(String.valueOf(time)));
-        return getRecordsByKeys(keys, ComparisonOperator.GE);
-    }
-
-
-    private Set<AuditActionContext> getRecordsByKeys(final Map<String, AttributeValue> keys,
-                                                     final ComparisonOperator operator) {
-
-        try {
-            val scanRequest = new ScanRequest(dynamoDbProperties.getTableName());
-            keys.forEach((k, v) -> {
-                val cond = new Condition();
-                cond.setComparisonOperator(operator);
-                cond.setAttributeValueList(List.of(v));
-                scanRequest.addScanFilterEntry(k, cond);
-            });
-
-            LOGGER.debug("Submitting request [{}] to get record with keys [{}]", scanRequest, keys);
-            val items = amazonDynamoDBClient.scan(scanRequest).getItems();
-            return items
-                .stream()
-                .map(item -> {
-                    val principal = item.get(ColumnNames.PRINCIPAL.getColumnName()).getS();
-                    val actionPerformed = item.get(ColumnNames.ACTION_PERFORMED.getColumnName()).getS();
-                    val appCode = item.get(ColumnNames.APPLICATION_CODE.getColumnName()).getS();
-                    val clientIp = item.get(ColumnNames.CLIENT_IP_ADDRESS.getColumnName()).getS();
-                    val serverIp = item.get(ColumnNames.SERVER_IP_ADDRESS.getColumnName()).getS();
-                    val resource = item.get(ColumnNames.RESOURCE_OPERATED_UPON.getColumnName()).getS();
-                    val time = Long.parseLong(item.get(ColumnNames.WHEN_ACTION_PERFORMED.getColumnName()).getS());
-                    return new AuditActionContext(principal, resource, actionPerformed,
-                        appCode, new Date(time), clientIp, serverIp);
-                })
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        } catch (final Exception e) {
-            LoggingUtils.error(LOGGER, e);
+        val queryKeys = CollectionUtils.<DynamoDbQueryBuilder>wrap(DynamoDbQueryBuilder.builder()
+            .key(ColumnNames.WHEN_ACTION_PERFORMED.getColumnName())
+            .attributeValue(List.of(AttributeValue.builder().s(String.valueOf(time)).build()))
+            .operator(ComparisonOperator.GE)
+            .build());
+        if (whereClause.containsKey(AuditTrailManager.WhereClauseFields.PRINCIPAL)) {
+            queryKeys.add(DynamoDbQueryBuilder.builder()
+                .key(ColumnNames.PRINCIPAL.getColumnName())
+                .attributeValue(List.of(AttributeValue.builder().s(whereClause.get(AuditTrailManager.WhereClauseFields.PRINCIPAL).toString()).build()))
+                .operator(ComparisonOperator.EQ)
+                .build());
         }
-        return new HashSet<>(0);
+        return DynamoDbTableUtils.getRecordsByKeys(amazonDynamoDBClient,
+                dynamoDbProperties.getTableName(), queryKeys,
+                item -> {
+                    val principal = item.get(ColumnNames.PRINCIPAL.getColumnName()).s();
+                    val actionPerformed = item.get(ColumnNames.ACTION_PERFORMED.getColumnName()).s();
+                    val appCode = item.get(ColumnNames.APPLICATION_CODE.getColumnName()).s();
+                    val clientIp = item.get(ColumnNames.CLIENT_IP_ADDRESS.getColumnName()).s();
+                    val serverIp = item.get(ColumnNames.SERVER_IP_ADDRESS.getColumnName()).s();
+                    val resource = item.get(ColumnNames.RESOURCE_OPERATED_UPON.getColumnName()).s();
+                    val userAgent = item.get(ColumnNames.USER_AGENT.getColumnName()).s();
+                    val time1 = Long.parseLong(item.get(ColumnNames.WHEN_ACTION_PERFORMED.getColumnName()).s());
+                    return new AuditActionContext(principal, resource, actionPerformed,
+                        appCode, new Date(time1), clientIp, serverIp, userAgent);
+                })
+            .collect(Collectors.toSet());
     }
 
     /**
      * Column names for tables holding records.
      */
     @Getter
+    @RequiredArgsConstructor
     public enum ColumnNames {
         /**
          * principal column.
@@ -197,14 +173,14 @@ public class DynamoDbAuditTrailManagerFacilitator {
          */
         ACTION_PERFORMED("actionPerformed"),
         /**
+         * userAgent column.
+         */
+        USER_AGENT("userAgent"),
+        /**
          * applicationCode column.
          */
         APPLICATION_CODE("applicationCode");
 
         private final String columnName;
-
-        ColumnNames(final String columnName) {
-            this.columnName = columnName;
-        }
     }
 }

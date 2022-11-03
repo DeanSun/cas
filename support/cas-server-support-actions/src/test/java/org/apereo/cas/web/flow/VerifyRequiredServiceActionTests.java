@@ -37,12 +37,15 @@ import static org.mockito.Mockito.*;
     "cas.sso.required-service-pattern=^https://www.google.com.*",
     "cas.tgc.crypto.enabled=false"
 })
-@Tag("Webflow")
+@Tag("WebflowActions")
 public class VerifyRequiredServiceActionTests extends AbstractWebflowActionsTests {
 
     private Action verifyRequiredServiceAction;
+
     private MockRequestContext requestContext;
+
     private MockHttpServletRequest httpRequest;
+
     private TicketRegistrySupport ticketRegistrySupport;
 
     @BeforeEach
@@ -106,7 +109,8 @@ public class VerifyRequiredServiceActionTests extends AbstractWebflowActionsTest
         WebUtils.putServiceIntoFlowScope(this.requestContext, RegisteredServiceTestUtils.getService("https://app2.com/"));
 
         val tgt = new MockTicketGrantingTicket("casuser");
-        tgt.grantServiceTicket(RegisteredServiceTestUtils.getService("https://google.com/"));
+        tgt.grantServiceTicket(RegisteredServiceTestUtils.getService("https://google.com/"),
+            serviceTicketSessionTrackingPolicy);
 
         when(ticketRegistrySupport.getTicketGrantingTicket(anyString())).thenReturn(tgt);
         this.httpRequest.setCookies(new Cookie(casProperties.getTgc().getName(), tgt.getId()));
@@ -121,7 +125,8 @@ public class VerifyRequiredServiceActionTests extends AbstractWebflowActionsTest
         WebUtils.putServiceIntoFlowScope(this.requestContext, RegisteredServiceTestUtils.getService("https://app2.com/"));
 
         val tgt = new MockTicketGrantingTicket("casuser");
-        tgt.grantServiceTicket(RegisteredServiceTestUtils.getService("https://www.google.com/"));
+        tgt.grantServiceTicket(RegisteredServiceTestUtils.getService("https://www.google.com/"),
+            serviceTicketSessionTrackingPolicy);
 
         when(ticketRegistrySupport.getTicketGrantingTicket(anyString())).thenReturn(tgt);
         this.httpRequest.setCookies(new Cookie(casProperties.getTgc().getName(), tgt.getId()));

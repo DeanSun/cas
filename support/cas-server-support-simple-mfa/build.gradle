@@ -2,7 +2,9 @@ description = "Apereo CAS Simple Multifactor Authentication Support"
 dependencies {
     api project(":api:cas-server-core-api-webflow")
     api project(":api:cas-server-core-api-util")
-    
+    api project(":api:cas-server-core-api-mfa")
+
+    implementation project(":support:cas-server-support-bucket4j-core")
     implementation project(":support:cas-server-support-otp-mfa")
     implementation project(":support:cas-server-support-simple-mfa-core")
     implementation project(":support:cas-server-support-trusted-mfa-core")
@@ -21,6 +23,7 @@ dependencies {
     implementation project(":core:cas-server-core-web-api")
 
     compileOnly project(":support:cas-server-support-trusted-mfa")
+    compileOnly project(":support:cas-server-support-surrogate-api")
 
     testImplementation project(":core:cas-server-core-tickets")
     testImplementation project(":core:cas-server-core-configuration")
@@ -35,11 +38,14 @@ dependencies {
     testImplementation project(":core:cas-server-core-cookie-api")
     testImplementation project(":core:cas-server-core-cookie")
     testImplementation project(":core:cas-server-core-web")
+    testImplementation project(":core:cas-server-core-audit")
     testImplementation project(":core:cas-server-core-util")
 
     testImplementation project(":support:cas-server-support-person-directory")
     testImplementation project(":support:cas-server-support-trusted-mfa")
-    
+    testImplementation project(":support:cas-server-support-surrogate-authentication")
+    testImplementation project(":support:cas-server-support-surrogate-webflow")
+
     testImplementation project(path: ":core:cas-server-core-webflow-mfa-api", configuration: "tests")
     testImplementation project(path: ":core:cas-server-core-webflow-mfa", configuration: "tests")
     testImplementation project(path: ":core:cas-server-core-webflow", configuration: "tests")

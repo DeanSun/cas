@@ -1,10 +1,13 @@
 package org.apereo.cas.pm.web.flow;
 
+import org.apereo.cas.pm.PasswordManagementService;
+
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.springframework.webflow.execution.RequestContext;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * This is {@link PasswordManagementWebflowUtils}.
@@ -15,16 +18,6 @@ import java.util.List;
 @UtilityClass
 public class PasswordManagementWebflowUtils {
     /**
-     * Param name for the token.
-     */
-    public static final String REQUEST_PARAMETER_NAME_PASSWORD_RESET_TOKEN = "pswdrst";
-
-    /**
-     * Flowscope param name for token.
-     */
-    public static final String FLOWSCOPE_PARAMETER_NAME_TOKEN = "token";
-
-    /**
      * Put password reset token.
      *
      * @param requestContext the request context
@@ -32,7 +25,7 @@ public class PasswordManagementWebflowUtils {
      */
     public void putPasswordResetToken(final RequestContext requestContext, final String token) {
         val flowScope = requestContext.getFlowScope();
-        flowScope.put(FLOWSCOPE_PARAMETER_NAME_TOKEN, token);
+        flowScope.put(PasswordManagementService.PARAMETER_TOKEN, token);
     }
 
     /**
@@ -47,14 +40,28 @@ public class PasswordManagementWebflowUtils {
     }
 
     /**
-     * Gets password reset questions.
+     * Put password reset security questions.
      *
      * @param requestContext the request context
+     * @param value          the value
+     */
+    public void putPasswordResetSecurityQuestions(final RequestContext requestContext, final Map<String, String> value) {
+        val flowScope = requestContext.getFlowScope();
+        flowScope.put("questions", value);
+    }
+
+    /**
+     * Gets password reset questions.
+     *
+     * @param <T>            the type parameter
+     * @param requestContext the request context
+     * @param clazz          the clazz
      * @return the password reset questions
      */
-    public static List<String> getPasswordResetQuestions(final RequestContext requestContext) {
+    public static <T> T getPasswordResetQuestions(final RequestContext requestContext,
+                                                  final Class<T> clazz) {
         val flowScope = requestContext.getFlowScope();
-        return flowScope.get("questions", List.class);
+        return flowScope.get("questions", clazz);
     }
 
     /**
@@ -72,7 +79,7 @@ public class PasswordManagementWebflowUtils {
      * Is password reset security questions enabled boolean.
      *
      * @param requestContext the request context
-     * @return true/false
+     * @return true /false
      */
     public static boolean isPasswordResetSecurityQuestionsEnabled(final RequestContext requestContext) {
         val flowScope = requestContext.getFlowScope();
@@ -109,17 +116,6 @@ public class PasswordManagementWebflowUtils {
      */
     public static String getPasswordResetToken(final RequestContext requestContext) {
         val flowScope = requestContext.getFlowScope();
-        return flowScope.getString(FLOWSCOPE_PARAMETER_NAME_TOKEN);
-    }
-
-    /**
-     * Put password reset password policy pattern string.
-     *
-     * @param requestContext the request context
-     * @param policyPattern  the policy pattern
-     */
-    public static void putPasswordResetPasswordPolicyPattern(final RequestContext requestContext, final String policyPattern) {
-        val flowScope = requestContext.getFlowScope();
-        flowScope.put("policyPattern", policyPattern);
+        return flowScope.getString(PasswordManagementService.PARAMETER_TOKEN);
     }
 }

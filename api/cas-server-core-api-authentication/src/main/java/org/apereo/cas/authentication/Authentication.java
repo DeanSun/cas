@@ -64,6 +64,14 @@ public interface Authentication extends Serializable {
     void addAttribute(String name, Object value);
 
     /**
+     * Contains attribute?
+     *
+     * @param name the name
+     * @return true
+     */
+    boolean containsAttribute(String name);
+
+    /**
      * Gets a list of metadata about the credentials supplied at authentication time.
      *
      * @return Non -null list of supplied credentials represented as metadata that should be
@@ -76,6 +84,7 @@ public interface Authentication extends Serializable {
     /**
      * Get a list of authentication warnings that may be considered global
      * and applicable to the entire authentication event.
+     *
      * @return list of authentication attempts.
      */
     List<MessageDescriptor> getWarnings();
@@ -111,4 +120,18 @@ public interface Authentication extends Serializable {
      * @param authn the authn object
      */
     void updateAll(Authentication authn);
+
+    /**
+     * Determines if two authentication objects
+     * are effectively the same attempt by comparing
+     * key aspects/fields of each attempt. This is not pure object
+     * equality; equality here may eventually determine if an SSO
+     * session should be renewed, or if the newer attempt is so
+     * very different from the current, that the current SSO session
+     * should be destroyed first.
+     *
+     * @param auth2 the second auth
+     * @return true/false
+     */
+    boolean isEqualTo(Authentication auth2);
 }

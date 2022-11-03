@@ -4,6 +4,8 @@ import lombok.val;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.io.Serial;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -18,13 +20,15 @@ public class RegisteredServiceConsentPolicyTests {
     @Test
     public void verifyOperation() {
         val input = new RegisteredServiceConsentPolicy() {
+            @Serial
             private static final long serialVersionUID = -4878764188998002053L;
         };
         assertEquals(0, input.size());
         assertEquals(0, input.getOrder());
-        assertTrue(input.isEnabled());
+        assertTrue(input.getStatus().isUndefined());
         assertTrue(input.getExcludedAttributes().isEmpty());
         assertTrue(input.getIncludeOnlyAttributes().isEmpty());
+        assertNull(input.getExcludedServices());
     }
 
 }

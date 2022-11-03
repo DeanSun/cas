@@ -6,11 +6,13 @@ import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.services.RegisteredService;
 import org.apereo.cas.util.CollectionUtils;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
+import java.io.Serial;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -28,35 +30,37 @@ import java.util.function.Predicate;
 @Slf4j
 @Getter
 public class DefaultAuthenticationBuilder implements AuthenticationBuilder {
-    private static final int MAP_SIZE = 8;
-
+    @Serial
     private static final long serialVersionUID = -8504842011648432398L;
 
-    private final List<CredentialMetaData> credentials = new ArrayList<>(MAP_SIZE);
+    private final List<CredentialMetaData> credentials = new ArrayList<>();
 
     /**
      * Warnings here are considered global and apply
      * to the authentication event vs individual attempts and results.
      */
-    private final List<MessageDescriptor> warnings = new ArrayList<>(MAP_SIZE);
+    private final List<MessageDescriptor> warnings = new ArrayList<>();
 
     /**
      * Authentication metadata attributes.
      */
-    private final Map<String, List<Object>> attributes = new LinkedHashMap<>(MAP_SIZE);
+    private final Map<String, List<Object>> attributes = new LinkedHashMap<>();
 
     /**
      * Map of handler names to authentication successes.
      */
-    private final Map<String, AuthenticationHandlerExecutionResult> successes = new LinkedHashMap<>(MAP_SIZE);
+    private final Map<String, AuthenticationHandlerExecutionResult> successes = new LinkedHashMap<>();
+
     /**
      * Map of handler names to authentication failures.
      */
-    private final Map<String, Throwable> failures = new LinkedHashMap<>(MAP_SIZE);
+    private final Map<String, Throwable> failures = new LinkedHashMap<>();
+
     /**
      * Authenticated principal.
      */
     private Principal principal;
+
     /**
      * Authentication date.
      */
@@ -106,165 +110,6 @@ public class DefaultAuthenticationBuilder implements AuthenticationBuilder {
         return new DefaultAuthenticationBuilder();
     }
 
-    @Override
-    public AuthenticationBuilder setWarnings(final List<MessageDescriptor> warning) {
-        this.warnings.clear();
-        this.warnings.addAll(warning);
-        return this;
-    }
-
-    @Override
-    public AuthenticationBuilder setAuthenticationDate(final ZonedDateTime d) {
-        if (d != null) {
-            this.authenticationDate = d;
-        }
-        return this;
-    }
-
-    @Override
-    public AuthenticationBuilder addWarnings(final List<MessageDescriptor> warning) {
-        this.warnings.addAll(warning);
-        return this;
-    }
-
-    @Override
-    public AuthenticationBuilder addWarning(final MessageDescriptor warning) {
-        this.warnings.add(warning);
-        return this;
-    }
-
-    @Override
-    public AuthenticationBuilder addCredentials(final List<CredentialMetaData> credentials) {
-        this.credentials.addAll(credentials);
-        return this;
-    }
-
-    @Override
-    public AuthenticationBuilder setPrincipal(final Principal p) {
-        this.principal = p;
-        return this;
-    }
-
-    /**
-     * Sets the list of metadata about credentials presented for authentication.
-     *
-     * @param credentials Non-null list of credential metadata.
-     * @return This builder instance.
-     */
-    public AuthenticationBuilder setCredentials(final @NonNull List<CredentialMetaData> credentials) {
-        this.credentials.clear();
-        this.credentials.addAll(credentials);
-        return this;
-    }
-
-    @Override
-    public AuthenticationBuilder addCredential(final CredentialMetaData credential) {
-        this.credentials.add(credential);
-        return this;
-    }
-
-    @Override
-    public AuthenticationBuilder setAttributes(final Map<String, List<Object>> attributes) {
-        this.attributes.clear();
-        this.attributes.putAll(attributes);
-        return this;
-    }
-
-    @Override
-    public AuthenticationBuilder mergeAttribute(final String key, final Object value) {
-        return mergeAttribute(key, CollectionUtils.toCollection(value, ArrayList.class));
-    }
-
-    @Override
-    public AuthenticationBuilder mergeAttribute(final String key, final List<Object> value) {
-        val currentValue = this.attributes.get(key);
-        if (currentValue == null) {
-            return addAttribute(key, value);
-        }
-        val collection = CollectionUtils.toCollection(currentValue, ArrayList.class);
-        collection.addAll(CollectionUtils.toCollection(value));
-        return addAttribute(key, collection);
-    }
-
-    @Override
-    public boolean hasAttribute(final String name, final Predicate<Object> predicate) {
-        if (this.attributes.containsKey(name)) {
-            val value = this.attributes.get(name);
-            val valueCol = CollectionUtils.toCollection(value);
-            return valueCol.stream().anyMatch(predicate);
-        }
-        return false;
-    }
-
-    @Override
-    public AuthenticationBuilder addAttribute(final String key, final List<Object> value) {
-        this.attributes.put(key, value);
-        return this;
-    }
-
-    @Override
-    public AuthenticationBuilder addAttribute(final String key, final Object value) {
-        return addAttribute(key, CollectionUtils.toCollection(value, ArrayList.class));
-    }
-
-    @Override
-    public AuthenticationBuilder setSuccesses(final @NonNull Map<String, AuthenticationHandlerExecutionResult> successes) {
-        this.successes.clear();
-        return addSuccesses(successes);
-    }
-
-    @Override
-    public AuthenticationBuilder addSuccesses(final @NonNull Map<String, AuthenticationHandlerExecutionResult> successes) {
-        if (successes != null) {
-            successes.forEach(this::addSuccess);
-        }
-        return this;
-    }
-
-    @Override
-    public AuthenticationBuilder addSuccess(final String key, final AuthenticationHandlerExecutionResult value) {
-        LOGGER.trace("Recording authentication handler result success under key [{}]", key);
-        if (this.successes.containsKey(key)) {
-            LOGGER.trace("Key mapped to authentication handler result [{}] is already recorded in the list of successful attempts. Overriding...", key);
-        }
-        this.successes.put(key, value);
-        return this;
-    }
-
-
-    @Override
-    public AuthenticationBuilder setFailures(final @NonNull Map<String, Throwable> failures) {
-        this.failures.clear();
-        return addFailures(failures);
-    }
-
-    @Override
-    public AuthenticationBuilder addFailures(final @NonNull Map<String, Throwable> failures) {
-        if (failures != null) {
-            failures.forEach(this::addFailure);
-        }
-        return this;
-    }
-
-    @Override
-    public AuthenticationBuilder addFailure(final String key, final Throwable value) {
-        LOGGER.trace("Recording authentication handler failure under key [{}]", key);
-        if (this.successes.containsKey(key)) {
-            val newKey = key + System.currentTimeMillis();
-            LOGGER.trace("Key mapped to authentication handler failure [{}] is recorded in the list of failed attempts. Overriding with [{}]", key, newKey);
-            this.failures.put(newKey, value);
-        } else {
-            this.failures.put(key, value);
-        }
-        return this;
-    }
-
-    @Override
-    public Authentication build() {
-        return new DefaultAuthentication(this.authenticationDate, this.credentials, this.principal,
-            this.attributes, this.successes, this.failures, this.warnings);
-    }
-
     /**
      * Factory method.
      *
@@ -286,5 +131,210 @@ public class DefaultAuthenticationBuilder implements AuthenticationBuilder {
         val principalId = registeredService.getUsernameAttributeProvider().resolveUsername(principal, service, registeredService);
         val newPrincipal = principalFactory.createPrincipal(principalId, principalAttributes);
         return DefaultAuthenticationBuilder.newInstance(authentication).setPrincipal(newPrincipal);
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder setPrincipal(final Principal p) {
+        this.principal = p;
+        return this;
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder addCredentials(final List<CredentialMetaData> credentials) {
+        this.credentials.addAll(credentials);
+        return this;
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder addCredential(final CredentialMetaData credential) {
+        this.credentials.add(credential);
+        return this;
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder addWarnings(final List<MessageDescriptor> warning) {
+        this.warnings.addAll(warning);
+        return this;
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder addWarning(final MessageDescriptor warning) {
+        this.warnings.add(warning);
+        return this;
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder setWarnings(final List<MessageDescriptor> warning) {
+        this.warnings.clear();
+        this.warnings.addAll(warning);
+        return this;
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder addAttribute(final String key, final List<Object> value) {
+        this.attributes.put(key, value);
+        return this;
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder addAttribute(final String key, final Object value) {
+        return addAttribute(key, CollectionUtils.toCollection(value, ArrayList.class));
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder setSuccesses(final @NonNull Map<String, AuthenticationHandlerExecutionResult> successes) {
+        this.successes.clear();
+        return addSuccesses(successes);
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder addAttributes(final Map<String, Object> attributes) {
+        attributes.forEach(this::addAttribute);
+        return this;
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder addSuccesses(final @NonNull Map<String, AuthenticationHandlerExecutionResult> successes) {
+        if (successes != null) {
+            successes.forEach(this::addSuccess);
+        }
+        return this;
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder addFailures(final @NonNull Map<String, Throwable> failures) {
+        if (failures != null) {
+            failures.forEach(this::addFailure);
+        }
+        return this;
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder addSuccess(final String key, final AuthenticationHandlerExecutionResult value) {
+        LOGGER.trace("Recording authentication handler result success under key [{}]", key);
+        if (this.successes.containsKey(key)) {
+            LOGGER.trace("Key mapped to authentication handler result [{}] is already recorded in the list of successful attempts. Overriding...",
+                key);
+        }
+        this.successes.put(key, value);
+        return this;
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder setAuthenticationDate(final ZonedDateTime d) {
+        if (d != null) {
+            this.authenticationDate = d;
+        }
+        return this;
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public Authentication build() {
+        val resultingCredentials = new LinkedHashMap<String, DetailedCredentialMetaData>();
+        credentials
+            .stream()
+            .filter(credential -> credential instanceof DetailedCredentialMetaData)
+            .map(DetailedCredentialMetaData.class::cast)
+            .forEach(credential -> {
+                val key = credential.getId() + '#' + credential.getCredentialClass().getName();
+                if (resultingCredentials.containsKey(key)) {
+                    val current = resultingCredentials.get(key);
+                    current.getProperties().putAll(credential.getProperties());
+                    resultingCredentials.put(key, current);
+                } else {
+                    resultingCredentials.put(key, credential);
+                }
+            });
+
+        return new DefaultAuthentication(this.authenticationDate, this.principal,
+            this.warnings, new ArrayList<>(resultingCredentials.values()),
+            this.attributes, this.successes, this.failures);
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder setFailures(final @NonNull Map<String, Throwable> failures) {
+        this.failures.clear();
+        return addFailures(failures);
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder addFailure(final String key, final Throwable value) {
+        LOGGER.trace("Recording authentication handler failure under key [{}]", key);
+        if (this.successes.containsKey(key)) {
+            val newKey = key + System.currentTimeMillis();
+            LOGGER.trace("Key mapped to authentication handler failure [{}] is recorded in the list of failed attempts. Overriding with [{}]", key,
+                newKey);
+            this.failures.put(newKey, value);
+        } else {
+            this.failures.put(key, value);
+        }
+        return this;
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder setAttributes(final Map<String, List<Object>> attributes) {
+        this.attributes.clear();
+        this.attributes.putAll(attributes);
+        return this;
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder mergeAttribute(final String key, final Object value) {
+        return mergeAttribute(key, CollectionUtils.toCollection(value, ArrayList.class));
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder mergeAttribute(final String key, final List<Object> value) {
+        val currentValue = this.attributes.get(key);
+        if (currentValue == null) {
+            return addAttribute(key, value);
+        }
+        val collection = CollectionUtils.toCollection(currentValue, ArrayList.class);
+        collection.addAll(CollectionUtils.toCollection(value));
+        return addAttribute(key, collection);
+    }
+
+    @Override
+    @CanIgnoreReturnValue
+    public boolean hasAttribute(final String name, final Predicate<Object> predicate) {
+        if (this.attributes.containsKey(name)) {
+            val value = this.attributes.get(name);
+            val valueCol = CollectionUtils.toCollection(value);
+            return valueCol.stream().anyMatch(predicate);
+        }
+        return false;
+    }
+
+    /**
+     * Sets the list of metadata about credentials presented for authentication.
+     *
+     * @param credentials Non-null list of credential metadata.
+     * @return This builder instance.
+     */
+    @CanIgnoreReturnValue
+    public AuthenticationBuilder setCredentials(final @NonNull List<CredentialMetaData> credentials) {
+        this.credentials.clear();
+        this.credentials.addAll(credentials);
+        return this;
     }
 }

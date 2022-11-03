@@ -1,8 +1,9 @@
 package org.apereo.cas.util.http;
 
+import org.apereo.cas.util.function.FunctionUtils;
+
 import lombok.Getter;
 import lombok.Setter;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.http.ConnectionReuseStrategy;
@@ -20,6 +21,7 @@ import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.LayeredConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
@@ -37,6 +39,7 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -109,7 +112,7 @@ public class SimpleHttpClientFactoryBean implements HttpClientFactory {
     /**
      * List of HTTP status codes considered valid by the caller.
      */
-    private List<Integer> acceptableCodes = IntStream.of(DEFAULT_ACCEPTABLE_CODES).boxed().collect(Collectors.toList());
+    private List<Integer> acceptableCodes = IntStream.of(DEFAULT_ACCEPTABLE_CODES).boxed().toList();
 
     private long connectionTimeout = DEFAULT_TIMEOUT;
 
@@ -123,7 +126,7 @@ public class SimpleHttpClientFactoryBean implements HttpClientFactory {
     /**
      * The socket factory to be used when verifying the validity of the endpoint.
      */
-    private SSLConnectionSocketFactory sslSocketFactory = SSLConnectionSocketFactory.getSocketFactory();
+    private LayeredConnectionSocketFactory sslSocketFactory = SSLConnectionSocketFactory.getSocketFactory();
 
     /**
      * The hostname verifier to be used when verifying the validity of the endpoint.
@@ -134,6 +137,11 @@ public class SimpleHttpClientFactoryBean implements HttpClientFactory {
      * The CAS SSL context used to create ssl socket factories, etc.
      */
     private SSLContext sslContext;
+
+    /**
+     * X509 trust managers.
+     */
+    private TrustManager[] trustManagers;
 
     /**
      * The credentials provider for endpoints that require authentication.
@@ -229,7 +237,6 @@ public class SimpleHttpClientFactoryBean implements HttpClientFactory {
      *
      * @return the built HTTP client
      */
-    @SneakyThrows
     @SuppressWarnings("java:S2095")
     private CloseableHttpClient buildHttpClient() {
         val plainSocketFactory = PlainConnectionSocketFactory.getSocketFactory();
@@ -243,7 +250,7 @@ public class SimpleHttpClientFactoryBean implements HttpClientFactory {
         connectionManager.setDefaultMaxPerRoute(this.maxConnectionsPerRoute);
         connectionManager.setValidateAfterInactivity(DEFAULT_TIMEOUT);
 
-        val httpHost = new HttpHost(InetAddress.getLocalHost());
+        val httpHost = FunctionUtils.doUnchecked(() -> new HttpHost(InetAddress.getLocalHost()));
         val httpRoute = new HttpRoute(httpHost);
         connectionManager.setMaxPerRoute(httpRoute, MAX_CONNECTIONS_PER_ROUTE);
 

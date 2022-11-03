@@ -18,7 +18,6 @@ import org.apereo.cas.web.support.WebUtils;
 import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWSAlgorithm;
-import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -51,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.*;
     TokenAuthenticationConfiguration.class,
     TokenAuthenticationWebflowConfiguration.class
 })
-@Tag("Webflow")
+@Tag("WebflowAuthenticationActions")
 public class TokenAuthenticationActionTests extends AbstractCentralAuthenticationServiceTests {
     private static final RandomStringGenerator RANDOM_STRING_GENERATOR = new DefaultRandomStringGenerator();
 
@@ -60,11 +59,11 @@ public class TokenAuthenticationActionTests extends AbstractCentralAuthenticatio
     private static final String ENCRYPTION_SECRET = RANDOM_STRING_GENERATOR.getNewString(48);
 
     @Autowired
-    @Qualifier("tokenAuthenticationAction")
+    @Qualifier(CasWebflowConstants.ACTION_ID_TOKEN_AUTHENTICATION_ACTION)
     private ObjectProvider<Action> action;
 
     @Autowired
-    @Qualifier("servicesManager")
+    @Qualifier(ServicesManager.BEAN_NAME)
     private ObjectProvider<ServicesManager> servicesManager;
 
     @BeforeEach
@@ -82,9 +81,8 @@ public class TokenAuthenticationActionTests extends AbstractCentralAuthenticatio
     }
 
     @Test
-    @SneakyThrows
-    public void verifyAction() {
-        val g = new JwtGenerator<CommonProfile>();
+    public void verifyAction() throws Exception {
+        val g = new JwtGenerator();
 
         g.setSignatureConfiguration(new SecretSignatureConfiguration(SIGNING_SECRET, JWSAlgorithm.HS256));
         g.setEncryptionConfiguration(new SecretEncryptionConfiguration(ENCRYPTION_SECRET, JWEAlgorithm.DIR, EncryptionMethod.A192CBC_HS384));
@@ -101,6 +99,6 @@ public class TokenAuthenticationActionTests extends AbstractCentralAuthenticatio
         val context = new MockRequestContext();
         context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, new MockHttpServletResponse()));
         WebUtils.putServiceIntoFlowScope(context, RegisteredServiceTestUtils.getService("https://example.token.org"));
-        assertEquals("success", this.action.getObject().execute(context).getId());
+        assertEquals(CasWebflowConstants.TRANSITION_ID_SUCCESS, this.action.getObject().execute(context).getId());
     }
 }

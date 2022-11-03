@@ -3,12 +3,14 @@ package org.apereo.cas.logout;
 import org.apereo.cas.authentication.principal.AbstractWebApplicationService;
 import org.apereo.cas.authentication.principal.WebApplicationServiceFactory;
 import org.apereo.cas.logout.slo.DefaultSingleLogoutServiceLogoutUrlBuilder;
-import org.apereo.cas.services.AbstractRegisteredService;
+import org.apereo.cas.services.BaseRegisteredService;
+import org.apereo.cas.services.CasRegisteredService;
 import org.apereo.cas.services.DefaultServicesManager;
+import org.apereo.cas.services.DefaultServicesManagerRegisteredServiceLocator;
 import org.apereo.cas.services.InMemoryServiceRegistry;
 import org.apereo.cas.services.RegexMatchingRegisteredServiceProxyPolicy;
-import org.apereo.cas.services.RegexRegisteredService;
 import org.apereo.cas.services.ServicesManager;
+import org.apereo.cas.services.ServicesManagerConfigurationContext;
 import org.apereo.cas.util.RandomUtils;
 import org.apereo.cas.web.SimpleUrlValidatorFactoryBean;
 
@@ -22,7 +24,8 @@ import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import java.net.URL;
-import java.util.Set;
+import java.util.HashSet;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -32,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 5.1.0
  */
-@Tag("Simple")
+@Tag("Logout")
 public class DefaultSingleLogoutServiceLogoutUrlBuilderTests {
     private ServicesManager servicesManager;
 
@@ -43,12 +46,12 @@ public class DefaultSingleLogoutServiceLogoutUrlBuilderTests {
     }
 
     @SneakyThrows
-    public AbstractRegisteredService getRegisteredService(final String id) {
-        val s = new RegexRegisteredService();
+    public BaseRegisteredService getRegisteredService(final String id) {
+        val s = new CasRegisteredService();
         s.setServiceId(id);
         s.setName("Test service " + id);
         s.setDescription("Registered service description");
-        s.setProxyPolicy(new RegexMatchingRegisteredServiceProxyPolicy("^https?://.+"));
+        s.setProxyPolicy(new RegexMatchingRegisteredServiceProxyPolicy().setPattern("^https?://.+"));
         s.setId(RandomUtils.getNativeInstance().nextInt());
         servicesManager.save(s);
         return s;
@@ -58,10 +61,14 @@ public class DefaultSingleLogoutServiceLogoutUrlBuilderTests {
     public void beforeEach() {
         val appCtx = new StaticApplicationContext();
         appCtx.refresh();
-        this.servicesManager = new DefaultServicesManager(
-            new InMemoryServiceRegistry(appCtx),
-            appCtx, Set.of(),
-            Caffeine.newBuilder().build());
+        val context = ServicesManagerConfigurationContext.builder()
+            .serviceRegistry(new InMemoryServiceRegistry(appCtx))
+            .applicationContext(appCtx)
+            .environments(new HashSet<>(0))
+            .servicesCache(Caffeine.newBuilder().build())
+            .registeredServiceLocators(List.of(new DefaultServicesManagerRegisteredServiceLocator()))
+            .build();
+        this.servicesManager = new DefaultServicesManager(context);
     }
 
     @Test

@@ -13,6 +13,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 /**
  * This is {@link MultifactorAuthenticationTrustStorageCleanerTests}.
  *
@@ -21,21 +23,20 @@ import java.time.ZonedDateTime;
  */
 @Getter
 @SpringBootTest(classes = AbstractMultifactorAuthenticationTrustStorageTests.SharedTestConfiguration.class)
-@Tag("MFA")
+@Tag("MFATrustedDevices")
 public class MultifactorAuthenticationTrustStorageCleanerTests extends AbstractMultifactorAuthenticationTrustStorageTests {
     @Autowired
     @Qualifier("mfaTrustStorageCleaner")
     protected MultifactorAuthenticationTrustStorageCleaner mfaTrustStorageCleaner;
-    
+
     @Test
     public void verifyAction() {
-        try {
+        assertNotNull(mfaTrustStorageCleaner.getStorage());
+        assertDoesNotThrow(() -> {
             val record = getMultifactorAuthenticationTrustRecord();
             record.setRecordDate(ZonedDateTime.now(ZoneOffset.UTC).minusDays(1));
             getMfaTrustEngine().save(record);
             mfaTrustStorageCleaner.clean();
-        } catch (final Exception e) {
-            throw new AssertionError(e.getMessage(), e);
-        }
+        });
     }
 }

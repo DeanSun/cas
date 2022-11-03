@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
-import org.pac4j.core.profile.CommonProfile;
+import org.pac4j.core.profile.UserProfile;
 import org.springframework.data.annotation.Id;
 import org.springframework.http.HttpStatus;
 
@@ -15,6 +15,7 @@ import javax.persistence.Lob;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.HashSet;
 
@@ -30,6 +31,7 @@ import java.util.HashSet;
 @NoArgsConstructor
 @MappedSuperclass
 public class ResourceSet implements Serializable {
+    @Serial
     private static final long serialVersionUID = -5529923878827427102L;
 
     @Id
@@ -68,7 +70,7 @@ public class ResourceSet implements Serializable {
      * @param profile the profile
      */
     @JsonIgnore
-    public void validate(final CommonProfile profile) {
+    public void validate(final UserProfile profile) {
         if (StringUtils.isBlank(getClientId())) {
             throw new InvalidResourceSetException(HttpStatus.BAD_REQUEST.value(), "Authentication request does contain a client id");
         }

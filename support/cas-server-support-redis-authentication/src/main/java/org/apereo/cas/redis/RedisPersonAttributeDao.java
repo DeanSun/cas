@@ -1,10 +1,11 @@
 package org.apereo.cas.redis;
 
+import org.apereo.cas.redis.core.CasRedisTemplate;
 import org.apereo.cas.util.CollectionUtils;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
+import lombok.Setter;
 import lombok.val;
 import org.apereo.services.persondir.IPersonAttributeDaoFilter;
 import org.apereo.services.persondir.IPersonAttributes;
@@ -12,7 +13,6 @@ import org.apereo.services.persondir.support.BasePersonAttributeDao;
 import org.apereo.services.persondir.support.CaseInsensitiveNamedPersonImpl;
 import org.apereo.services.persondir.support.IUsernameAttributeProvider;
 import org.apereo.services.persondir.support.SimpleUsernameAttributeProvider;
-import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -30,8 +30,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Getter
 public class RedisPersonAttributeDao extends BasePersonAttributeDao {
-    private final IUsernameAttributeProvider usernameAttributeProvider = new SimpleUsernameAttributeProvider();
-    private final RedisTemplate redisTemplate;
+    @Setter
+    private IUsernameAttributeProvider usernameAttributeProvider = new SimpleUsernameAttributeProvider();
+
+    private final CasRedisTemplate redisTemplate;
 
     private static Map<String, List<Object>> stuffAttributesIntoList(final Map<String, ?> personAttributesMap) {
         val entries = (Set<? extends Map.Entry<String, ?>>) personAttributesMap.entrySet();
@@ -40,7 +42,6 @@ public class RedisPersonAttributeDao extends BasePersonAttributeDao {
     }
 
     @Override
-    @SneakyThrows
     public IPersonAttributes getPerson(final String uid, final IPersonAttributeDaoFilter filter) {
         val attributes = redisTemplate.opsForHash().entries(uid);
         return new CaseInsensitiveNamedPersonImpl(uid, stuffAttributesIntoList(attributes));

@@ -3,6 +3,7 @@ package org.apereo.cas.web.flow;
 import org.apereo.cas.util.EncodingUtils;
 
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.webflow.context.servlet.DefaultFlowUrlHandler;
@@ -20,6 +21,7 @@ import java.util.stream.Stream;
  * @since 3.4
  */
 @Setter
+@Slf4j
 public class CasDefaultFlowUrlHandler extends DefaultFlowUrlHandler {
 
     /**
@@ -27,6 +29,7 @@ public class CasDefaultFlowUrlHandler extends DefaultFlowUrlHandler {
      * Same as that used by {@link DefaultFlowUrlHandler}.
      **/
     public static final String DEFAULT_FLOW_EXECUTION_KEY_PARAMETER = "execution";
+
     private static final String DELIMITER = "&";
 
     /**
@@ -34,20 +37,6 @@ public class CasDefaultFlowUrlHandler extends DefaultFlowUrlHandler {
      */
     private String flowExecutionKeyParameter = DEFAULT_FLOW_EXECUTION_KEY_PARAMETER;
 
-    private static Stream<String> encodeMultiParameter(final String key, final String[] values, final String encoding) {
-        return Stream.of(values).map(value -> encodeSingleParameter(key, value, encoding));
-    }
-
-    private static String encodeSingleParameter(final String key, final String value, final String encoding) {
-        return EncodingUtils.urlEncode(key, encoding) + '=' + EncodingUtils.urlEncode(value, encoding);
-    }
-
-    /**
-     * Get the flow execution key.
-     *
-     * @param request the current HTTP servlet request.
-     * @return the flow execution key.
-     */
     @Override
     public String getFlowExecutionKey(final HttpServletRequest request) {
         return request.getParameter(this.flowExecutionKeyParameter);
@@ -56,17 +45,25 @@ public class CasDefaultFlowUrlHandler extends DefaultFlowUrlHandler {
     @Override
     public String createFlowExecutionUrl(final String flowId, final String flowExecutionKey, final HttpServletRequest request) {
         val encoding = getEncodingScheme(request);
-
-
         val executionKey = encodeSingleParameter(this.flowExecutionKeyParameter, flowExecutionKey, encoding);
-        return request.getParameterMap().entrySet()
+        val url = request.getParameterMap().entrySet()
             .stream()
             .flatMap(entry -> encodeMultiParameter(entry.getKey(), entry.getValue(), encoding))
             .collect(Collectors.joining(DELIMITER, request.getRequestURI() + '?', DELIMITER + executionKey));
+        LOGGER.trace("Final flow execution url is [{}]", url);
+        return url;
     }
 
     @Override
     public String createFlowDefinitionUrl(final String flowId, final AttributeMap input, final HttpServletRequest request) {
         return request.getRequestURI() + (request.getQueryString() != null ? '?' + request.getQueryString() : StringUtils.EMPTY);
+    }
+
+    private static Stream<String> encodeMultiParameter(final String key, final String[] values, final String encoding) {
+        return Stream.of(values).map(value -> encodeSingleParameter(key, value, encoding));
+    }
+
+    private static String encodeSingleParameter(final String key, final String value, final String encoding) {
+        return EncodingUtils.urlEncode(key, encoding) + '=' + EncodingUtils.urlEncode(value, encoding);
     }
 }

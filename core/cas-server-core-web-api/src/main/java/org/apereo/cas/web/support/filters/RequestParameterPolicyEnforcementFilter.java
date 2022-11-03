@@ -208,10 +208,6 @@ public class RequestParameterPolicyEnforcementFilter extends AbstractSecurityFil
             logException(new IllegalArgumentException('[' + initParamValue + "] had no tokens but should have had at least one token."));
         }
         val tokens = Splitter.onPattern("\\s+").splitToList(initParamValue.trim());
-        if (tokens.isEmpty()) {
-            logException(new IllegalArgumentException('[' + initParamValue + "] had no tokens but should have had at least one token."));
-        }
-
         if (allowWildcard && 1 == tokens.size() && "*".equals(tokens.get(0))) {
             return new HashSet<>(0);
         }
@@ -249,13 +245,7 @@ public class RequestParameterPolicyEnforcementFilter extends AbstractSecurityFil
             return charactersToForbid;
         }
 
-        var tokens = Splitter.onPattern("\\s+").splitToList(paramValue);
-
-        if (tokens.isEmpty()) {
-            logException(new IllegalArgumentException("Expected tokens when parsing [" + paramValue + "] but found no tokens."
-                + " If you really want to configure no characters, use the magic value 'none'."));
-        }
-
+        val tokens = Splitter.onPattern("\\s+").splitToList(paramValue);
         for (val token : tokens) {
             if (token.length() > 1) {
                 logException(new IllegalArgumentException("Expected tokens of length 1 but found [" + token + "] when parsing [" + paramValue + ']'));
@@ -274,7 +264,6 @@ public class RequestParameterPolicyEnforcementFilter extends AbstractSecurityFil
      * <p>
      * This method is an implementation detail and is not exposed API.
      * This method is only non-private to allow JUnit testing.
-     * <p>
      *
      * @param parametersToCheck non-null potentially empty Set of String names of parameters
      * @param parameterMap      non-null Map from String name of parameter to String[] values
@@ -382,8 +371,7 @@ public class RequestParameterPolicyEnforcementFilter extends AbstractSecurityFil
     public void doFilter(final ServletRequest request, final ServletResponse response, final FilterChain chain)
         throws IOException, ServletException {
         try {
-            if (request instanceof HttpServletRequest) {
-                val httpServletRequest = (HttpServletRequest) request;
+            if (request instanceof HttpServletRequest httpServletRequest) {
                 val parameterMap = httpServletRequest.getParameterMap();
 
                 blockRequestIfNecessary(httpServletRequest);

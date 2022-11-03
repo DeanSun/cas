@@ -12,6 +12,7 @@ import org.apereo.cas.services.web.config.CasThemesConfiguration;
 import org.apereo.cas.validation.config.CasCoreValidationConfiguration;
 import org.apereo.cas.web.config.CasCookieConfiguration;
 import org.apereo.cas.web.flow.config.CasCoreWebflowConfiguration;
+import org.apereo.cas.web.flow.config.CasMultifactorAuthenticationWebflowConfiguration;
 import org.apereo.cas.web.flow.config.CasWebflowContextConfiguration;
 
 import lombok.val;
@@ -78,6 +79,8 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCookieConfiguration.class,
     CasCoreWebConfiguration.class,
     CasCoreValidationConfiguration.class,
+    CasCoreMultifactorAuthenticationConfiguration.class,
+    CasMultifactorAuthenticationWebflowConfiguration.class,
     CasCoreConfiguration.class,
     CasCoreAuditConfiguration.class,
     CasPersonDirectoryConfiguration.class,
@@ -86,6 +89,7 @@ import static org.junit.jupiter.api.Assertions.*;
     MailSenderAutoConfiguration.class,
     RefreshAutoConfiguration.class
 }, properties = {
+    "spring.main.allow-bean-definition-overriding=true",
     "cas.authn.accept.users=casuser::Mellon",
     "cas.http-web-request.cors.enabled=true",
     "cas.http-web-request.pattern-to-block=.*",
@@ -93,7 +97,7 @@ import static org.junit.jupiter.api.Assertions.*;
 })
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @WebAppConfiguration
-@EnableAspectJAutoProxy(proxyTargetClass = true)
+@EnableAspectJAutoProxy(proxyTargetClass = false)
 @EnableWebMvc
 @Tag("WebApp")
 public class WiringConfigurationTests {

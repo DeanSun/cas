@@ -12,9 +12,9 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.springframework.beans.factory.config.AbstractFactoryBean;
 import org.springframework.core.io.Resource;
 
+import javax.annotation.Nonnull;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
@@ -47,7 +47,7 @@ public class PrivateKeyFactoryBean extends AbstractFactoryBean<PrivateKey> {
 
     private PrivateKey readPemPrivateKey() {
         LOGGER.trace("Attempting to read as PEM [{}]", this.location);
-        try (Reader in = new InputStreamReader(this.location.getInputStream(), StandardCharsets.UTF_8);
+        try (val in = new InputStreamReader(this.location.getInputStream(), StandardCharsets.UTF_8);
              val br = new BufferedReader(in);
              val pp = new PEMParser(br)) {
 
@@ -55,8 +55,7 @@ public class PrivateKeyFactoryBean extends AbstractFactoryBean<PrivateKey> {
             if (object instanceof PrivateKeyInfo) {
                 return new JcaPEMKeyConverter().getPrivateKey((PrivateKeyInfo) object);
             }
-            if (object instanceof PEMKeyPair) {
-                val pemKeyPair = (PEMKeyPair) object;
+            if (object instanceof PEMKeyPair pemKeyPair) {
                 val kp = new JcaPEMKeyConverter().getKeyPair(pemKeyPair);
                 return kp.getPrivate();
             }
@@ -80,6 +79,7 @@ public class PrivateKeyFactoryBean extends AbstractFactoryBean<PrivateKey> {
         }
     }
 
+    @Nonnull
     @Override
     protected PrivateKey createInstance() {
         var key = readPemPrivateKey();

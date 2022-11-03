@@ -11,8 +11,11 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+
+import java.io.Serial;
 
 /**
  * Generates a persistent id as username for anonymous service access.
@@ -27,10 +30,12 @@ import lombok.val;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @Getter
+@Accessors(chain = true)
 @AllArgsConstructor
 @Setter
 public class AnonymousRegisteredServiceUsernameAttributeProvider extends BaseRegisteredServiceUsernameAttributeProvider {
 
+    @Serial
     private static final long serialVersionUID = 7050462900237284803L;
 
     /**

@@ -5,7 +5,6 @@ import org.apereo.cas.util.crypto.CipherExecutor;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
@@ -24,19 +23,14 @@ import java.util.function.Predicate;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public abstract class AbstractMapBasedTicketRegistry extends AbstractTicketRegistry {
 
-    /**
-     * Creates a new, empty registry with the cipher.
-     *
-     * @param cipherExecutor the cipher executor
-     */
     protected AbstractMapBasedTicketRegistry(final CipherExecutor cipherExecutor) {
         setCipherExecutor(cipherExecutor);
     }
 
     @Override
-    public void addTicket(final @NonNull Ticket ticket) {
+    public void addTicketInternal(final Ticket ticket) throws Exception {
         val encTicket = encodeTicket(ticket);
-        LOGGER.debug("Added ticket [{}] to registry.", ticket.getId());
+        LOGGER.debug("Putting ticket [{}] in registry.", ticket.getId());
         getMapInstance().put(encTicket.getId(), encTicket);
     }
 
@@ -54,17 +48,16 @@ public abstract class AbstractMapBasedTicketRegistry extends AbstractTicketRegis
 
         val result = decodeTicket(found);
         if (!predicate.test(result)) {
-            LOGGER.debug("The condition enforced by the predicate [{}] cannot successfully accept/test the ticket id [{}]", ticketId,
-                predicate.getClass().getSimpleName());
+            LOGGER.debug("Cannot successfully fetch ticket [{}]", ticketId);
             return null;
         }
         return result;
     }
 
     @Override
-    public boolean deleteSingleTicket(final String ticketId) {
+    public long deleteSingleTicket(final String ticketId) {
         val encTicketId = encodeTicketId(ticketId);
-        return !StringUtils.isBlank(encTicketId) && getMapInstance().remove(encTicketId) != null;
+        return !StringUtils.isBlank(encTicketId) && getMapInstance().remove(encTicketId) != null ? 1 : 0;
     }
 
     @Override
@@ -80,7 +73,8 @@ public abstract class AbstractMapBasedTicketRegistry extends AbstractTicketRegis
     }
 
     @Override
-    public Ticket updateTicket(final Ticket ticket) {
+    public Ticket updateTicket(final Ticket ticket) throws Exception {
+        LOGGER.trace("Updating ticket [{}] in registry...", ticket.getId());
         addTicket(ticket);
         return ticket;
     }

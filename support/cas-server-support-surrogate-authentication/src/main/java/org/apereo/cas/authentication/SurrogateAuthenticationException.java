@@ -1,6 +1,6 @@
 package org.apereo.cas.authentication;
 
-import java.util.Map;
+import java.io.Serial;
 
 /**
  * This is {@link SurrogateAuthenticationException}.
@@ -9,13 +9,10 @@ import java.util.Map;
  * @since 5.2.0
  */
 public class SurrogateAuthenticationException extends AuthenticationException {
+    @Serial
     private static final long serialVersionUID = -3250559691638860076L;
 
     public SurrogateAuthenticationException(final String msg) {
         super(msg);
-    }
-
-    public SurrogateAuthenticationException(final Map<String, Throwable> handlerErrors) {
-        super(handlerErrors);
     }
 }

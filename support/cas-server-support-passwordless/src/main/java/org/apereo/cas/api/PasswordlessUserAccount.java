@@ -14,7 +14,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.io.Serializable;
+import java.io.Serial;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +34,8 @@ import java.util.Map;
 @NoArgsConstructor
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 @Builder
-public class PasswordlessUserAccount extends BasicIdentifiableCredential implements Serializable {
+public class PasswordlessUserAccount extends BasicIdentifiableCredential {
+    @Serial
     private static final long serialVersionUID = 5783908770607793373L;
 
     @JsonProperty("username")
@@ -59,6 +61,10 @@ public class PasswordlessUserAccount extends BasicIdentifiableCredential impleme
     @JsonProperty("delegatedAuthenticationEligible")
     @Builder.Default
     private TriStateBoolean delegatedAuthenticationEligible = TriStateBoolean.UNDEFINED;
+
+    @JsonProperty("allowedDelegatedClients")
+    @Builder.Default
+    private List<String> allowedDelegatedClients = new ArrayList<>();
 
     @JsonProperty("requestPassword")
     private boolean requestPassword;

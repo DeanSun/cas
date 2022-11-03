@@ -3,7 +3,7 @@ package org.apereo.cas.adaptors.u2f.storage;
 import org.apereo.cas.config.CasCoreHttpConfiguration;
 import org.apereo.cas.config.U2FConfiguration;
 import org.apereo.cas.config.U2FDynamoDbConfiguration;
-import org.apereo.cas.util.junit.EnabledIfPortOpen;
+import org.apereo.cas.util.junit.EnabledIfListeningOnPort;
 
 import lombok.Getter;
 import org.junit.jupiter.api.Tag;
@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
+import software.amazon.awssdk.core.SdkSystemSetting;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -36,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.*;
         "cas.authn.mfa.u2f.dynamo-db.region=us-east-1"
     })
 @Tag("DynamoDb")
-@EnabledIfPortOpen(port = 8000)
+@EnabledIfListeningOnPort(port = 8000)
 @Getter
 public class U2FDynamoDbDeviceRepositoryTests extends AbstractU2FDeviceRepositoryTests {
     @Autowired
@@ -45,8 +46,8 @@ public class U2FDynamoDbDeviceRepositoryTests extends AbstractU2FDeviceRepositor
 
 
     static {
-        System.setProperty("aws.accessKeyId", "AKIAIPPIGGUNIO74C63Z");
-        System.setProperty("aws.secretKey", "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");
+        System.setProperty(SdkSystemSetting.AWS_ACCESS_KEY_ID.property(), "AKIAIPPIGGUNIO74C63Z");
+        System.setProperty(SdkSystemSetting.AWS_SECRET_ACCESS_KEY.property(), "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");
     }
     
     @Test

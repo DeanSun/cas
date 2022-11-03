@@ -7,7 +7,8 @@ import org.apereo.cas.config.CasCouchDbCoreConfiguration;
 import org.apereo.cas.config.CouchDbYubiKeyConfiguration;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.couchdb.yubikey.YubiKeyAccountCouchDbRepository;
-import org.apereo.cas.util.junit.EnabledIfPortOpen;
+import org.apereo.cas.util.crypto.CipherExecutor;
+import org.apereo.cas.util.junit.EnabledIfListeningOnPort;
 
 import lombok.Getter;
 import org.ektorp.CouchDbConnector;
@@ -41,7 +42,7 @@ import org.springframework.boot.test.context.SpringBootTest;
     })
 @Getter
 @EnableConfigurationProperties(CasConfigurationProperties.class)
-@EnabledIfPortOpen(port = 5984)
+@EnabledIfListeningOnPort(port = 5984)
 public class CouchDbYubiKeyAccountRegistryTests extends AbstractYubiKeyAccountRegistryTests {
     @Autowired
     @Qualifier("yubiKeyAccountRegistry")
@@ -59,10 +60,16 @@ public class CouchDbYubiKeyAccountRegistryTests extends AbstractYubiKeyAccountRe
     @Qualifier("couchDbYubiKeyAccountRepository")
     private YubiKeyAccountCouchDbRepository couchDbRepository;
 
+    @Autowired
+    @Qualifier("yubikeyAccountCipherExecutor")
+    private CipherExecutor yubikeyAccountCipherExecutor;
+
+    @Override
     @BeforeEach
     public void setUp() {
         couchDbInstance.createDatabaseIfNotExists(couchDbConnector.getDatabaseName());
         couchDbRepository.initStandardDesignDocument();
+        super.setUp();
     }
 
     @AfterEach

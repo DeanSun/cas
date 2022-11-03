@@ -12,13 +12,15 @@ import org.junit.jupiter.api.Test;
 import java.net.URI;
 import java.util.Calendar;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 /**
  * This is {@link ScimV2PrincipalAttributeMapperTests}.
  *
  * @author Misagh Moayyed
  * @since 5.3.0
  */
-@Tag("Attributes")
+@Tag("SCIM")
 public class ScimV2PrincipalAttributeMapperTests {
     @Test
     public void verifyAction() throws Exception {
@@ -35,12 +37,10 @@ public class ScimV2PrincipalAttributeMapperTests {
         meta.setLocation(new URI("http://localhost:8218"));
         user.setMeta(meta);
 
-        try {
-            val mapper = new ScimV2PrincipalAttributeMapper();
+        assertDoesNotThrow(() -> {
+            val mapper = new DefaultScimV2PrincipalAttributeMapper();
             mapper.map(user, CoreAuthenticationTestUtils.getPrincipal(),
                 CoreAuthenticationTestUtils.getCredentialsWithSameUsernameAndPassword());
-        } catch (final Exception e) {
-            throw new AssertionError(e.getMessage(), e);
-        }
+        });
     }
 }

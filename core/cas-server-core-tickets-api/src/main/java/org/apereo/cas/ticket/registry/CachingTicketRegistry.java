@@ -1,17 +1,19 @@
 package org.apereo.cas.ticket.registry;
 
 import org.apereo.cas.logout.LogoutManager;
+import org.apereo.cas.logout.SingleLogoutExecutionRequest;
 import org.apereo.cas.ticket.Ticket;
 import org.apereo.cas.ticket.TicketGrantingTicket;
 import org.apereo.cas.util.crypto.CipherExecutor;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.RemovalListener;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.Map;
 
@@ -31,24 +33,21 @@ public class CachingTicketRegistry extends AbstractMapBasedTicketRegistry {
 
     private final Map<String, Ticket> mapInstance;
 
-    private final LoadingCache<String, Ticket> storage;
+    private final Cache<String, Ticket> storage;
 
-    private final LogoutManager logoutManager;
+    private final ObjectProvider<LogoutManager> logoutManager;
 
-    public CachingTicketRegistry(final LogoutManager logoutManager) {
+    public CachingTicketRegistry(final ObjectProvider<LogoutManager> logoutManager) {
         this(CipherExecutor.noOp(), logoutManager);
     }
 
-    public CachingTicketRegistry(final CipherExecutor cipherExecutor, final LogoutManager logoutManager) {
+    public CachingTicketRegistry(final CipherExecutor cipherExecutor, final ObjectProvider<LogoutManager> logoutManager) {
         super(cipherExecutor);
         this.storage = Caffeine.newBuilder()
             .initialCapacity(INITIAL_CACHE_SIZE)
             .maximumSize(MAX_CACHE_SIZE)
             .expireAfter(new CachedTicketExpirationPolicy()).removalListener(new CachedTicketRemovalListener())
-            .build(s -> {
-                LOGGER.error("Load operation of the cache is not supported.");
-                return null;
-            });
+            .build();
         this.mapInstance = this.storage.asMap();
         this.logoutManager = logoutManager;
     }
@@ -95,7 +94,11 @@ public class CachingTicketRegistry extends AbstractMapBasedTicketRegistry {
             if (cause == RemovalCause.EXPIRED) {
                 LOGGER.warn("Received removal notification for ticket [{}] with cause [{}]. Cleaning...", key, cause);
                 if (value instanceof TicketGrantingTicket) {
-                    logoutManager.performLogout(TicketGrantingTicket.class.cast(value));
+                    logoutManager.ifAvailable(manager ->
+                        manager.performLogout(SingleLogoutExecutionRequest.builder()
+                            .ticketGrantingTicket(TicketGrantingTicket.class.cast(value))
+                            .build()));
+
                 }
             }
         }

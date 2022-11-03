@@ -8,8 +8,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.Serial;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 
@@ -26,8 +28,10 @@ import java.util.LinkedHashSet;
 @EqualsAndHashCode(exclude = "allowedProviders")
 @AllArgsConstructor
 @NoArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@Accessors(chain = true)
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public class DefaultRegisteredServiceDelegatedAuthenticationPolicy implements RegisteredServiceDelegatedAuthenticationPolicy {
+    @Serial
     private static final long serialVersionUID = -784106970642770923L;
 
     private Collection<String> allowedProviders = new LinkedHashSet<>(0);
@@ -36,6 +40,8 @@ public class DefaultRegisteredServiceDelegatedAuthenticationPolicy implements Re
 
     private boolean exclusive;
 
+    private String selectionStrategy;
+    
     @Override
     @JsonIgnore
     public boolean isProviderAllowed(final String provider, final RegisteredService registeredService) {

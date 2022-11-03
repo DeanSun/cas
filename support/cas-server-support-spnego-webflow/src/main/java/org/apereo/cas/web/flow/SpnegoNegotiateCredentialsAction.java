@@ -2,12 +2,13 @@ package org.apereo.cas.web.flow;
 
 import org.apereo.cas.support.spnego.util.SpnegoConstants;
 import org.apereo.cas.util.HttpRequestUtils;
+import org.apereo.cas.web.flow.actions.BaseCasWebflowAction;
 import org.apereo.cas.web.support.WebUtils;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.util.StringUtils;
-import org.springframework.webflow.action.AbstractAction;
 import org.springframework.webflow.execution.Event;
 import org.springframework.webflow.execution.RequestContext;
 
@@ -32,11 +33,16 @@ import java.util.List;
  * @since 3.1
  */
 @Slf4j
-public class SpnegoNegotiateCredentialsAction extends AbstractAction {
+@RequiredArgsConstructor
+public class SpnegoNegotiateCredentialsAction extends BaseCasWebflowAction {
     /**
-     * Whether this is using the NTLM protocol or not.
+     * Sets supported browsers by their user agent. The user agent
+     * header defined will be compared against this list. The user agents configured
+     * here need not be an exact match. So longer is the user agent identifier
+     * configured in this list is "found" in the user agent header retrieved,
+     * the check will pass.
      */
-    private final boolean ntlm;
+    private final List<String> supportedBrowser;
 
     /**
      * Sets whether mixed mode authentication should be enabled. If it is
@@ -50,40 +56,6 @@ public class SpnegoNegotiateCredentialsAction extends AbstractAction {
      * want to use Windows Integrated Auth/SPNEGO and not forms auth.
      */
     private final boolean mixedModeAuthentication;
-
-    /**
-     * Sets supported browsers by their user agent. The user agent
-     * header defined will be compared against this list. The user agents configured
-     * here need not be an exact match. So longer is the user agent identifier
-     * configured in this list is "found" in the user agent header retrieved,
-     * the check will pass.
-     */
-    private final List<String> supportedBrowser;
-
-    private final String messageBeginPrefix;
-
-    /**
-     * Instantiates a new Spnego negociate credentials action.
-     * Also add to the list of supported browser user agents the following:
-     * <ul>
-     * <li>{@code MSIE}</li>
-     * <li>{@code Trident}</li>
-     * <li>{@code Firefox}</li>
-     * <li>{@code AppleWebKit}</li>
-     * </ul>
-     *
-     * @param supportedBrowser               the supported browsers list
-     * @param ntlm                           Sets the ntlm. Generates the message prefix as well.
-     * @param mixedModeAuthenticationEnabled should mixed mode authentication be allowed. Default is false.
-     * @since 4.1
-     */
-    public SpnegoNegotiateCredentialsAction(final List<String> supportedBrowser, final boolean ntlm, final boolean mixedModeAuthenticationEnabled) {
-        this.ntlm = ntlm;
-        this.messageBeginPrefix = constructMessagePrefix();
-        this.mixedModeAuthentication = mixedModeAuthenticationEnabled;
-
-        this.supportedBrowser = supportedBrowser;
-    }
 
     @Override
     protected Event doExecute(final RequestContext context) {
@@ -106,13 +78,12 @@ public class SpnegoNegotiateCredentialsAction extends AbstractAction {
         }
 
         if (!StringUtils.hasText(authorizationHeader)
-            || !authorizationHeader.startsWith(this.messageBeginPrefix)
-            || authorizationHeader.length() <= this.messageBeginPrefix.length()) {
+            || !authorizationHeader.startsWith(SpnegoConstants.NEGOTIATE)
+            || authorizationHeader.length() <= SpnegoConstants.NEGOTIATE.length()) {
 
-            val wwwHeader = this.ntlm ? SpnegoConstants.NTLM : SpnegoConstants.NEGOTIATE;
             LOGGER.debug("Authorization header not found or does not match the message prefix [{}]. Sending [{}] header [{}]",
-                this.messageBeginPrefix, SpnegoConstants.HEADER_AUTHENTICATE, wwwHeader);
-            response.setHeader(SpnegoConstants.HEADER_AUTHENTICATE, wwwHeader);
+                SpnegoConstants.NEGOTIATE, SpnegoConstants.HEADER_AUTHENTICATE, SpnegoConstants.NEGOTIATE);
+            response.setHeader(SpnegoConstants.HEADER_AUTHENTICATE, SpnegoConstants.NEGOTIATE);
 
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             /*
@@ -120,24 +91,14 @@ public class SpnegoNegotiateCredentialsAction extends AbstractAction {
              because another object has taken care of it. If mixed mode authentication is allowed
              then responseComplete should not be called so that webflow will display the login page.
               */
-            if (!this.mixedModeAuthentication) {
+            if (this.mixedModeAuthentication) {
+                LOGGER.debug("Mixed-mode authentication is enabled");
+            } else {
                 LOGGER.debug("Mixed-mode authentication is disabled. Executing completion of response");
                 context.getExternalContext().recordResponseComplete();
-            } else {
-                LOGGER.debug("Mixed-mode authentication is enabled");
             }
         }
         return success();
-    }
-
-    /**
-     * Construct message prefix.
-     *
-     * @return if {@link #ntlm} is enabled, {@link SpnegoConstants#NTLM}, otherwise
-     * {@link SpnegoConstants#NEGOTIATE}. An extra space is appended to the end.
-     */
-    protected String constructMessagePrefix() {
-        return (this.ntlm ? SpnegoConstants.NTLM : SpnegoConstants.NEGOTIATE) + ' ';
     }
 
     /**

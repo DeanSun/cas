@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.1.0
  */
-@Tag("SAML")
+@Tag("SAML2")
 public class DefaultSamlAttributeQueryTicketFactoryTests extends BaseSamlIdPConfigurationTests {
     @Autowired
     @Qualifier("samlAttributeQueryTicketFactory")
@@ -25,12 +25,16 @@ public class DefaultSamlAttributeQueryTicketFactoryTests extends BaseSamlIdPConf
 
     @Test
     public void verifyOperation() {
+
         val tgt = new MockTicketGrantingTicket("casuser");
         val ticketId = samlAttributeQueryTicketFactory.create("ATTR_QUERY",
             getAuthnRequestFor("helloworld"), "https://www.example.org", tgt);
         assertNotNull(ticketId);
-        assertNotNull(ticketId.getRelyingParty());
+        assertNull(ticketId.getTicketGrantingTicket());
+        assertNotNull(ticketId.getPrefix());
+        assertNotNull(ticketId.getAuthentication());
         assertNotNull(ticketId.getObject());
+        assertNotNull(ticketId.getRelyingParty());
         assertNotNull(ticketId.getExpirationPolicy());
     }
 }

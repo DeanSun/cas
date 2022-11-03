@@ -1,7 +1,9 @@
 package org.apereo.cas.ticket.serialization.serializers;
 
-import org.apereo.cas.ticket.registry.EncodedTicket;
+import org.apereo.cas.ticket.registry.DefaultEncodedTicket;
 import org.apereo.cas.util.serialization.AbstractJacksonBackedStringSerializer;
+
+import java.io.Serial;
 
 /**
  * This is {@link EncodedTicketStringSerializer}.
@@ -9,7 +11,8 @@ import org.apereo.cas.util.serialization.AbstractJacksonBackedStringSerializer;
  * @author Misagh Moayyed
  * @since 6.1.0
  */
-public class EncodedTicketStringSerializer extends AbstractJacksonBackedStringSerializer<EncodedTicket> {
+public class EncodedTicketStringSerializer extends AbstractJacksonBackedStringSerializer<DefaultEncodedTicket> {
+    @Serial
     private static final long serialVersionUID = 8959835299162115085L;
 
     public EncodedTicketStringSerializer() {
@@ -17,8 +20,8 @@ public class EncodedTicketStringSerializer extends AbstractJacksonBackedStringSe
     }
 
     @Override
-    public Class<EncodedTicket> getTypeToSerialize() {
-        return EncodedTicket.class;
+    public Class<DefaultEncodedTicket> getTypeToSerialize() {
+        return DefaultEncodedTicket.class;
     }
 
 }

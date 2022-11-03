@@ -24,17 +24,16 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreMultifactorAuthenticationConfiguration.class,
     CasMultifactorAuthenticationWebflowConfiguration.class,
     TokenAuthenticationConfiguration.class,
-    TokenAuthenticationWebflowConfiguration.class,
-    BaseWebflowConfigurerTests.SharedTestConfiguration.class
+    TokenAuthenticationWebflowConfiguration.class
 })
-@Tag("Webflow")
+@Tag("WebflowConfig")
 public class TokenWebflowConfigurerTests extends BaseWebflowConfigurerTests {
     @Test
     public void verifyOperation() {
         assertFalse(casWebflowExecutionPlan.getWebflowConfigurers().isEmpty());
         val flow = (Flow) this.loginFlowDefinitionRegistry.getFlowDefinition(CasWebflowConfigurer.FLOW_ID_LOGIN);
         assertNotNull(flow);
-        val state = (TransitionableState) flow.getState(TokenWebflowConfigurer.STATE_ID_TOKEN_AUTHENTICATION_CHECK);
+        val state = (TransitionableState) flow.getState(CasWebflowConstants.STATE_ID_TOKEN_AUTHENTICATION_CHECK);
         assertNotNull(state);
     }
 }

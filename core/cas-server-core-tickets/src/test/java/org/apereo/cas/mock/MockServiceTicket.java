@@ -4,10 +4,11 @@ import org.apereo.cas.authentication.Authentication;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.ticket.ExpirationPolicy;
 import org.apereo.cas.ticket.ProxyGrantingTicketImpl;
+import org.apereo.cas.ticket.ProxyGrantingTicketIssuerTicket;
+import org.apereo.cas.ticket.RenewableServiceTicket;
 import org.apereo.cas.ticket.ServiceTicket;
 import org.apereo.cas.ticket.Ticket;
 import org.apereo.cas.ticket.TicketGrantingTicket;
-import org.apereo.cas.ticket.TicketState;
 import org.apereo.cas.ticket.expiration.NeverExpiresExpirationPolicy;
 import org.apereo.cas.ticket.proxy.ProxyGrantingTicket;
 
@@ -16,6 +17,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 
+import java.io.Serial;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -30,8 +32,9 @@ import java.util.Optional;
 @Getter
 @Setter
 @EqualsAndHashCode(of = "id")
-public class MockServiceTicket implements ServiceTicket, TicketState {
+public class MockServiceTicket implements ServiceTicket, RenewableServiceTicket, ProxyGrantingTicketIssuerTicket {
 
+    @Serial
     private static final long serialVersionUID = 8203377063087967768L;
 
     private final String id;
@@ -39,8 +42,11 @@ public class MockServiceTicket implements ServiceTicket, TicketState {
     private final ZonedDateTime creationTime;
 
     private final Service service;
+
     private TicketGrantingTicket ticketGrantingTicket;
+
     private ExpirationPolicy expirationPolicy;
+
     private boolean expired;
 
     public MockServiceTicket(final String id, final Service service,
@@ -48,7 +54,8 @@ public class MockServiceTicket implements ServiceTicket, TicketState {
         this(id, service, parent, null);
     }
 
-    public MockServiceTicket(final String id, final Service service,
+    public MockServiceTicket(final String id,
+                             final Service service,
                              final TicketGrantingTicket parent,
                              final ExpirationPolicy policy) {
         this.service = service;
@@ -59,12 +66,8 @@ public class MockServiceTicket implements ServiceTicket, TicketState {
     }
 
     @Override
-    public boolean isFromNewLogin() {
-        return false;
-    }
-
-    @Override
-    public ProxyGrantingTicket grantProxyGrantingTicket(final String id, final Authentication authentication, final ExpirationPolicy expirationPolicy) {
+    public ProxyGrantingTicket grantProxyGrantingTicket(final String id, final Authentication authentication,
+                                                        final ExpirationPolicy expirationPolicy) {
         val pgt = new ProxyGrantingTicketImpl(id, this.service, this.getTicketGrantingTicket(), authentication, expirationPolicy);
         getTicketGrantingTicket().getProxyGrantingTickets().put(pgt.getId(), this.service);
         return pgt;
@@ -112,5 +115,10 @@ public class MockServiceTicket implements ServiceTicket, TicketState {
     @Override
     public void markTicketExpired() {
         this.expired = true;
+    }
+
+    @Override
+    public boolean isFromNewLogin() {
+        return false;
     }
 }

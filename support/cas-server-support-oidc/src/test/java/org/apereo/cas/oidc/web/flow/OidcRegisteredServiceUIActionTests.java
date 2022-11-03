@@ -2,10 +2,12 @@ package org.apereo.cas.oidc.web.flow;
 
 import org.apereo.cas.oidc.AbstractOidcTests;
 import org.apereo.cas.services.RegisteredServiceTestUtils;
+import org.apereo.cas.web.flow.CasWebflowConstants;
 import org.apereo.cas.web.flow.services.DefaultRegisteredServiceUserInterfaceInfo;
 import org.apereo.cas.web.support.WebUtils;
 
 import lombok.val;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.webflow.test.MockRequestContext;
@@ -23,22 +25,28 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("OIDC")
 public class OidcRegisteredServiceUIActionTests extends AbstractOidcTests {
 
+    @BeforeEach
+    public void setup() {
+        servicesManager.deleteAll();
+    }
+
     @Test
     public void verifyOidcActionWithoutMDUI() throws Exception {
         val ctx = new MockRequestContext();
         WebUtils.putServiceIntoFlowScope(ctx, null);
         val event = oidcRegisteredServiceUIAction.execute(ctx);
-        assertEquals("success", event.getId());
+        assertEquals(CasWebflowConstants.TRANSITION_ID_SUCCESS, event.getId());
         assertNull(WebUtils.getServiceUserInterfaceMetadata(ctx, Serializable.class));
     }
 
     @Test
     public void verifyOidcActionWithMDUI() throws Exception {
         val ctx = new MockRequestContext();
+        servicesManager.save(getOidcRegisteredService());
         WebUtils.putServiceIntoFlowScope(ctx, RegisteredServiceTestUtils.getService(
             "https://www.example.org?client_id=id&client_secret=secret&redirect_uri=https://oauth.example.org"));
         val event = oidcRegisteredServiceUIAction.execute(ctx);
-        assertEquals("success", event.getId());
+        assertEquals(CasWebflowConstants.TRANSITION_ID_SUCCESS, event.getId());
         val mdui = WebUtils.getServiceUserInterfaceMetadata(ctx, DefaultRegisteredServiceUserInterfaceInfo.class);
         assertNotNull(mdui);
 

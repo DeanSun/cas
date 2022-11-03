@@ -1,7 +1,9 @@
 package org.apereo.cas.authentication.credential;
 
+import org.apereo.cas.util.function.FunctionUtils;
 import org.apereo.cas.util.spring.ApplicationContextProvider;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -9,12 +11,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.val;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.binding.message.MessageBuilder;
 import org.springframework.binding.validation.ValidationContext;
 
 import javax.validation.constraints.Size;
-
+import java.io.Serial;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -37,21 +40,21 @@ public class UsernamePasswordCredential extends AbstractCredential {
      **/
     public static final String AUTHENTICATION_ATTRIBUTE_PASSWORD = "credential";
 
-    private static final int MAP_SIZE = 8;
-
+    @Serial
     private static final long serialVersionUID = -700605081472810939L;
 
     private @Size(min = 1, message = "username.required") String username;
 
-    private @Size(min = 1, message = "password.required") String password;
+    @JsonIgnore
+    private @Size(min = 1, message = "password.required") char[] password;
 
     private String source;
 
-    private Map<String, Object> customFields = new LinkedHashMap<>(MAP_SIZE);
+    private Map<String, Object> customFields = new LinkedHashMap<>();
 
     public UsernamePasswordCredential(final String username, final String password) {
         this.username = username;
-        this.password = password;
+        assignPassword(StringUtils.defaultString(password));
     }
 
     @Override
@@ -59,15 +62,10 @@ public class UsernamePasswordCredential extends AbstractCredential {
         return this.username;
     }
 
-    /**
-     * Validate.
-     *
-     * @param context the context
-     */
     @Override
     public void validate(final ValidationContext context) {
         val messages = context.getMessageContext();
-        if (!context.getUserEvent().equalsIgnoreCase("submit") || messages.hasErrorMessages()) {
+        if (!"submit".equalsIgnoreCase(context.getUserEvent()) || messages.hasErrorMessages()) {
             return;
         }
 
@@ -82,5 +80,26 @@ public class UsernamePasswordCredential extends AbstractCredential {
             }
         });
         super.validate(context);
+    }
+
+    /**
+     * Convert to string-friendly password.
+     *
+     * @return the string
+     */
+    public String toPassword() {
+        return FunctionUtils.doIfNull(this.password, () -> null, () -> new String(this.password)).get();
+    }
+
+    /**
+     * Sets password and converts it to char array.
+     *
+     * @param password the password
+     */
+    public void assignPassword(final String password) {
+        FunctionUtils.doIfNotNull(password, p -> {
+            this.password = new char[p.length()];
+            System.arraycopy(password.toCharArray(), 0, this.password, 0, password.length());
+        }, p -> this.password = ArrayUtils.EMPTY_CHAR_ARRAY);
     }
 }

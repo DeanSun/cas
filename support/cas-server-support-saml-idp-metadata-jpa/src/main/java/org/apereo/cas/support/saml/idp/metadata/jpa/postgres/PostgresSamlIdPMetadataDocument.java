@@ -14,6 +14,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.io.Serial;
 
 /**
  * This is {@link PostgresSamlIdPMetadataDocument}.
@@ -23,31 +24,19 @@ import javax.persistence.Table;
  */
 @NoArgsConstructor
 @AttributeOverrides({
-    @AttributeOverride(
-        name = "metadata",
-        column = @Column(columnDefinition = "varchar")
-    ),
-    @AttributeOverride(
-        name = "signingCertificate",
-        column = @Column(columnDefinition = "varchar")
-    ),
-    @AttributeOverride(
-        name = "signingKey",
-        column = @Column(columnDefinition = "varchar")
-    ),
-    @AttributeOverride(
-        name = "encryptionCertificate",
-        column = @Column(columnDefinition = "varchar")
-    ),
-    @AttributeOverride(
-        name = "encryptionKey",
-        column = @Column(columnDefinition = "varchar")
-    )
+    @AttributeOverride(name = "metadata", column = @Column(columnDefinition = "varchar")),
+    @AttributeOverride(name = "signingCertificate", column = @Column(columnDefinition = "varchar")),
+    @AttributeOverride(name = "signingKey", column = @Column(columnDefinition = "varchar")),
+    @AttributeOverride(name = "encryptionCertificate", column = @Column(columnDefinition = "varchar")),
+    @AttributeOverride(name = "encryptionKey", column = @Column(columnDefinition = "varchar"))
 })
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 @Entity(name = "SamlIdPMetadataDocument")
 @Table(name = "SamlIdPMetadataDocument")
 public class PostgresSamlIdPMetadataDocument extends SamlIdPMetadataDocument {
+    @Serial
+    private static final long serialVersionUID = 2576062504192441866L;
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator = "native")
     @GenericGenerator(name = "native", strategy = "native")

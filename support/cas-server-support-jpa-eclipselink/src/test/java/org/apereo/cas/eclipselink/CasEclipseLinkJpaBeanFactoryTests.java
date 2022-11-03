@@ -37,15 +37,15 @@ import static org.junit.jupiter.api.Assertions.*;
     RefreshAutoConfiguration.class,
     CasEclipseLinkJpaConfiguration.class,
     CasCoreUtilConfiguration.class
-}, properties = "cas.jdbc.show-sql=true")
+}, properties = "cas.jdbc.show-sql=false")
 @Tag("JDBC")
-@EnableTransactionManagement(proxyTargetClass = true)
+@EnableTransactionManagement(proxyTargetClass = false)
 public class CasEclipseLinkJpaBeanFactoryTests {
     @Autowired
     private CasConfigurationProperties casProperties;
 
     @Autowired
-    @Qualifier("jpaBeanFactory")
+    @Qualifier(JpaBeanFactory.DEFAULT_BEAN_NAME)
     private JpaBeanFactory jpaBeanFactory;
 
     @SneakyThrows
@@ -54,22 +54,25 @@ public class CasEclipseLinkJpaBeanFactoryTests {
     }
 
     @Test
-    public void verifyOperation() {
+    public void verifyOperation() throws Exception {
         val adapter = jpaBeanFactory.newJpaVendorAdapter();
         assertNotNull(adapter);
 
-        val ctx = new JpaConfigurationContext(
-            adapter,
-            "sampleContext",
-            CollectionUtils.wrap(SampleEntity.class.getPackage().getName()),
-            dataSource());
-        val bean = jpaBeanFactory.newEntityManagerFactoryBean(ctx, casProperties.getAudit().getJdbc());
+        val ctx = JpaConfigurationContext.builder()
+            .dataSource(dataSource())
+            .packagesToScan(CollectionUtils.wrapSet(SampleEntity.class.getPackage().getName()))
+            .persistenceUnitName("sampleContext")
+            .jpaVendorAdapter(adapter)
+            .build();
+        val bean = jpaBeanFactory.newEntityManagerFactoryBean(ctx,
+            casProperties.getAudit().getJdbc()).getObject();
         assertNotNull(bean);
     }
 
     @Entity
     @Getter
     @NoArgsConstructor
+    @SuppressWarnings("UnusedMethod")
     private static class SampleEntity {
         @Id
         private long id;

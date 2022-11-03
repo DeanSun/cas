@@ -3,6 +3,7 @@ package org.apereo.cas.services.support;
 import org.apereo.cas.services.RegisteredServiceAttributeFilter;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.ResourceUtils;
+import org.apereo.cas.util.function.FunctionUtils;
 import org.apereo.cas.util.scripting.ExecutableCompiledGroovyScript;
 import org.apereo.cas.util.scripting.GroovyShellScript;
 import org.apereo.cas.util.scripting.ScriptingUtils;
@@ -16,13 +17,13 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.SneakyThrows;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import javax.persistence.PostLoad;
 import javax.persistence.Transient;
+import java.io.Serial;
 import java.util.List;
 import java.util.Map;
 
@@ -38,9 +39,10 @@ import java.util.Map;
 @Setter
 @NoArgsConstructor
 @EqualsAndHashCode
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public class RegisteredServiceScriptedAttributeFilter implements RegisteredServiceAttributeFilter {
 
+    @Serial
     private static final long serialVersionUID = 122972056984610198L;
 
     private int order;
@@ -60,14 +62,13 @@ public class RegisteredServiceScriptedAttributeFilter implements RegisteredServi
     }
 
     @PostLoad
-    @SneakyThrows
     private void initializeWatchableScriptIfNeeded() {
         if (this.executableScript == null) {
             val matcherInline = ScriptingUtils.getMatcherForInlineGroovyScript(script);
             val matcherFile = ScriptingUtils.getMatcherForExternalGroovyScript(script);
 
             if (matcherFile.find()) {
-                val resource = ResourceUtils.getRawResourceFrom(matcherFile.group(2));
+                val resource = FunctionUtils.doUnchecked(() -> ResourceUtils.getRawResourceFrom(matcherFile.group(2)));
                 this.executableScript = new WatchableGroovyScriptResource(resource);
             } else if (matcherInline.find()) {
                 this.executableScript = new GroovyShellScript(matcherInline.group(1));
@@ -75,7 +76,6 @@ public class RegisteredServiceScriptedAttributeFilter implements RegisteredServi
         }
     }
 
-    @SneakyThrows
     private Map<String, List<Object>> getGroovyAttributeValue(final Map<String, List<Object>> resolvedAttributes) {
         val args = CollectionUtils.wrap("attributes", resolvedAttributes, "logger", LOGGER);
         executableScript.setBinding(args);

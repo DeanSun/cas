@@ -1,5 +1,6 @@
 package org.apereo.cas.configuration.model.support.generic;
 
+import org.apereo.cas.configuration.model.core.authentication.AuthenticationHandlerStates;
 import org.apereo.cas.configuration.model.core.authentication.PasswordEncoderProperties;
 import org.apereo.cas.configuration.model.core.authentication.PasswordPolicyProperties;
 import org.apereo.cas.configuration.model.core.authentication.PrincipalTransformationProperties;
@@ -12,6 +13,7 @@ import lombok.experimental.Accessors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 /**
@@ -27,7 +29,16 @@ import java.io.Serializable;
 @JsonFilter("AcceptAuthenticationProperties")
 public class AcceptAuthenticationProperties implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 2448007503183227617L;
+
+    /**
+     * Indicates whether the authentication
+     * strategy is enabled. The strategy
+     * may also be disabled explicitly if
+     * the {@link #users} is left blank.
+     */
+    private boolean enabled = true;
 
     /**
      * Accepted users for authentication, in the syntax of {@code uid::password}.
@@ -55,7 +66,7 @@ public class AcceptAuthenticationProperties implements Serializable {
      * and as such lend themselves to be tried and tested during the authentication handler selection phase.
      * The credential criteria may be one of the following options:<ul>
      * <li>1) A regular expression pattern that is tested against the credential identifier.</li>
-     * <li>2) A fully qualified class name of your own design that implements {@code Predicate<Credential>}.</li>
+     * <li>2) A fully qualified class name of your own design that implements {@code Predicate}.</li>
      * <li>3) Path to an external Groovy script that implements the same interface.</li>
      * </ul>
      */
@@ -72,4 +83,10 @@ public class AcceptAuthenticationProperties implements Serializable {
      */
     @NestedConfigurationProperty
     private PasswordPolicyProperties passwordPolicy = new PasswordPolicyProperties();
+
+    /**
+     * Define the scope and state of this authentication handler
+     * and the lifecycle in which it can be invoked or activated.
+     */
+    private AuthenticationHandlerStates state = AuthenticationHandlerStates.ACTIVE;
 }

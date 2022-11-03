@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.io.Serial;
+
 /**
  * This is {@link DefaultRegisteredServiceAcceptableUsagePolicy}.
  *
@@ -18,9 +20,10 @@ import lombok.ToString;
 @Setter
 @NoArgsConstructor
 @EqualsAndHashCode
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public class DefaultRegisteredServiceAcceptableUsagePolicy implements RegisteredServiceAcceptableUsagePolicy {
 
+    @Serial
     private static final long serialVersionUID = -1441506976879419151L;
 
     private boolean enabled = true;

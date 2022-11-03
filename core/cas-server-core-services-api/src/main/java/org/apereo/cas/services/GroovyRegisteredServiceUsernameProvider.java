@@ -2,8 +2,10 @@ package org.apereo.cas.services;
 
 import org.apereo.cas.authentication.principal.Principal;
 import org.apereo.cas.authentication.principal.Service;
+import org.apereo.cas.configuration.support.ExpressionLanguageCapable;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.ResourceUtils;
+import org.apereo.cas.util.function.FunctionUtils;
 import org.apereo.cas.util.scripting.ExecutableCompiledGroovyScript;
 import org.apereo.cas.util.scripting.GroovyShellScript;
 import org.apereo.cas.util.scripting.ScriptingUtils;
@@ -18,13 +20,14 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.SneakyThrows;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.persistence.PostLoad;
 import javax.persistence.Transient;
+import java.io.Serial;
 
 /**
  * Resolves the username for the service to be the default principal id.
@@ -38,10 +41,13 @@ import javax.persistence.Transient;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
+@Accessors(chain = true)
 public class GroovyRegisteredServiceUsernameProvider extends BaseRegisteredServiceUsernameAttributeProvider {
 
+    @Serial
     private static final long serialVersionUID = 5823989148794052951L;
 
+    @ExpressionLanguageCapable
     private String groovyScript;
 
     @JsonIgnore
@@ -55,7 +61,6 @@ public class GroovyRegisteredServiceUsernameProvider extends BaseRegisteredServi
     }
 
     @PostLoad
-    @SneakyThrows
     private void initializeWatchableScriptIfNeeded() {
         if (this.executableScript == null) {
             val matcherInline = ScriptingUtils.getMatcherForInlineGroovyScript(groovyScript);
@@ -63,7 +68,7 @@ public class GroovyRegisteredServiceUsernameProvider extends BaseRegisteredServi
 
             if (matcherFile.find()) {
                 val script = SpringExpressionLanguageValueResolver.getInstance().resolve(matcherFile.group());
-                val resource = ResourceUtils.getRawResourceFrom(script);
+                val resource = FunctionUtils.doUnchecked(() -> ResourceUtils.getRawResourceFrom(script));
                 this.executableScript = new WatchableGroovyScriptResource(resource);
             } else if (matcherInline.find()) {
                 this.executableScript = new GroovyShellScript(matcherInline.group(1));

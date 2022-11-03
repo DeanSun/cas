@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 5.2.0
  */
-@Tag("RegisteredService")
+@Tag("Cipher")
 public class RegisteredServicePublicKeyCipherExecutorTests {
 
     @Test
@@ -45,8 +45,8 @@ public class RegisteredServicePublicKeyCipherExecutorTests {
         assertNull(e.encode(ticketId, Optional.of(svc)));
     }
 
-    private static AbstractRegisteredService getService(final String keyLocation) {
-        val svc = new RegexRegisteredService();
+    private static BaseRegisteredService getService(final String keyLocation) {
+        val svc = new CasRegisteredService();
         svc.setServiceId("Testing");
         if (StringUtils.isNotBlank(keyLocation)) {
             svc.setPublicKey(new RegisteredServicePublicKeyImpl(keyLocation, "RSA"));

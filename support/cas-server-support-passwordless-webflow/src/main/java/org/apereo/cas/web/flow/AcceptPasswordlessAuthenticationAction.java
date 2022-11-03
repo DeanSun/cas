@@ -20,6 +20,8 @@ import org.springframework.webflow.core.collection.LocalAttributeMap;
 import org.springframework.webflow.execution.Event;
 import org.springframework.webflow.execution.RequestContext;
 
+import java.util.Optional;
+
 /**
  * This is {@link AcceptPasswordlessAuthenticationAction}.
  *
@@ -50,13 +52,13 @@ public class AcceptPasswordlessAuthenticationAction extends AbstractAuthenticati
     protected Event doExecute(final RequestContext requestContext) {
         val principal = WebUtils.getPasswordlessAuthenticationAccount(requestContext, PasswordlessUserAccount.class);
         try {
-            val token = requestContext.getRequestParameters().get("token");
+            val token = requestContext.getRequestParameters().getRequired("token");
             val currentToken = passwordlessTokenRepository.findToken(principal.getUsername());
 
             if (currentToken.isPresent() && token.equalsIgnoreCase(currentToken.get())) {
                 val credential = new OneTimePasswordCredential(principal.getUsername(), token);
                 val service = WebUtils.getService(requestContext);
-                val authenticationResult = authenticationSystemSupport.handleAndFinalizeSingleAuthenticationTransaction(service, credential);
+                val authenticationResult = authenticationSystemSupport.finalizeAuthenticationTransaction(service, credential);
                 WebUtils.putAuthenticationResult(authenticationResult, requestContext);
                 WebUtils.putAuthentication(authenticationResult.getAuthentication(), requestContext);
                 WebUtils.putCredential(requestContext, credential);
@@ -68,7 +70,7 @@ public class AcceptPasswordlessAuthenticationAction extends AbstractAuthenticati
             LoggingUtils.error(LOGGER, e);
             val attributes = new LocalAttributeMap<>();
             attributes.put("error", e);
-            val account = passwordlessUserAccountStore.findUser(principal.getUsername());
+            var account = principal != null ? passwordlessUserAccountStore.findUser(principal.getUsername()) : Optional.empty();
             if (account.isPresent()) {
                 attributes.put("passwordlessAccount", account.get());
                 return new EventFactorySupport().event(this, CasWebflowConstants.TRANSITION_ID_AUTHENTICATION_FAILURE, attributes);

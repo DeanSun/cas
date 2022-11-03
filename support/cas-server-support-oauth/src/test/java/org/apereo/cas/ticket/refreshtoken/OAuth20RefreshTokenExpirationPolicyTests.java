@@ -14,8 +14,8 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * @since 5.3.0
  */
-@TestPropertySource(properties = "cas.logout.removeDescendantTickets=true")
-@Tag("OAuth")
+@TestPropertySource(properties = "cas.logout.remove-descendant-tickets=true")
+@Tag("OAuthToken")
 public class OAuth20RefreshTokenExpirationPolicyTests extends BaseOAuth20ExpirationPolicyTests {
     @Test
     public void verifyRefreshTokenExpiryWhenTgtIsExpired() {
@@ -26,6 +26,15 @@ public class OAuth20RefreshTokenExpirationPolicyTests extends BaseOAuth20Expirat
         assertFalse(rt.isExpired(), "Refresh token should not be expired");
         tgt.markTicketExpired();
         assertTrue(rt.isExpired(), "Refresh token should not be expired when TGT is expired");
+        assertEquals(0, rt.getExpirationPolicy().getTimeToIdle());
+    }
+
+    @Test
+    public void verifyFails() {
+        val tgt = newTicketGrantingTicket();
+        val at = newAccessToken(tgt);
+        val rt = newRefreshToken(at);
+        assertTrue(rt.getExpirationPolicy().isExpired(null));
     }
 
     @Test

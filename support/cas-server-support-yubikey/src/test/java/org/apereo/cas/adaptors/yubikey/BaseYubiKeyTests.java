@@ -1,5 +1,6 @@
 package org.apereo.cas.adaptors.yubikey;
 
+import org.apereo.cas.audit.spi.config.CasCoreAuditConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationPrincipalConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationServiceSelectionStrategyConfiguration;
@@ -16,12 +17,13 @@ import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CasCoreWebConfiguration;
 import org.apereo.cas.config.CasDefaultServiceTicketIdGeneratorsConfiguration;
 import org.apereo.cas.config.CasPersonDirectoryTestConfiguration;
+import org.apereo.cas.config.YubiKeyAuthenticationEventExecutionPlanConfiguration;
+import org.apereo.cas.config.YubiKeyAuthenticationMultifactorProviderBypassConfiguration;
+import org.apereo.cas.config.YubiKeyAuthenticationWebflowConfiguration;
+import org.apereo.cas.config.YubiKeyComponentSerializationConfiguration;
 import org.apereo.cas.config.YubiKeyConfiguration;
+import org.apereo.cas.config.YubiKeyRestConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
-import org.apereo.cas.config.support.authentication.YubiKeyAuthenticationEventExecutionPlanConfiguration;
-import org.apereo.cas.config.support.authentication.YubiKeyAuthenticationMultifactorProviderBypassConfiguration;
-import org.apereo.cas.config.support.authentication.YubiKeyComponentSerializationConfiguration;
-import org.apereo.cas.config.support.authentication.YubiKeyRestConfiguration;
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 import org.apereo.cas.services.web.config.CasThemesConfiguration;
 import org.apereo.cas.trusted.config.MultifactorAuthnTrustConfiguration;
@@ -32,14 +34,17 @@ import org.apereo.cas.web.flow.config.CasCoreWebflowConfiguration;
 import org.apereo.cas.web.flow.config.CasMultifactorAuthenticationWebflowConfiguration;
 import org.apereo.cas.web.flow.config.CasWebflowContextConfiguration;
 
-import org.junit.jupiter.api.Tag;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
 import org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.ScopedProxyMode;
 
 /**
  * This is {@link BaseYubiKeyTests}.
@@ -47,30 +52,25 @@ import org.springframework.context.annotation.Import;
  * @author Misagh Moayyed
  * @since 6.2.0
  */
-@SpringBootTest(classes = BaseYubiKeyTests.SharedTestConfiguration.class,
-    properties = {
-        "cas.authn.mfa.yubikey.client-id=18423",
-        "cas.authn.mfa.yubikey.secret-key=zAIqhjui12mK8x82oe9qzBEb0As=",
-        "cas.authn.mfa.yubikey.json-file=file:/tmp/yubikey.json"
-    })
-@Tag("MFA")
 public abstract class BaseYubiKeyTests {
     @ImportAutoConfiguration({
         RefreshAutoConfiguration.class,
         MailSenderAutoConfiguration.class,
+        WebMvcAutoConfiguration.class,
         AopAutoConfiguration.class
     })
     @SpringBootConfiguration
     @Import({
+        YubiKeyTestConfiguration.class,
         MultifactorAuthnTrustConfiguration.class,
         MultifactorAuthnTrustedDeviceFingerprintConfiguration.class,
         MultifactorAuthnTrustWebflowConfiguration.class,
-        YubiKeyConfiguration.YubiKeyMultifactorTrustConfiguration.class,
-        JsonYubiKeyAccountRegistryTests.JsonYubiKeyAccountRegistryTestConfiguration.class,
+        YubiKeyAuthenticationWebflowConfiguration.YubiKeyMultifactorTrustConfiguration.class,
         YubiKeyAuthenticationEventExecutionPlanConfiguration.class,
         YubiKeyAuthenticationMultifactorProviderBypassConfiguration.class,
         YubiKeyComponentSerializationConfiguration.class,
         YubiKeyRestConfiguration.class,
+        YubiKeyAuthenticationWebflowConfiguration.class,
         YubiKeyConfiguration.class,
         CasCoreServicesConfiguration.class,
         CasWebflowContextConfiguration.class,
@@ -92,10 +92,22 @@ public abstract class BaseYubiKeyTests {
         CasCoreNotificationsConfiguration.class,
         CasCoreUtilConfiguration.class,
         CasCoreWebConfiguration.class,
+        CasCoreAuditConfiguration.class,
         CasCoreTicketCatalogConfiguration.class,
         CasDefaultServiceTicketIdGeneratorsConfiguration.class,
         CasWebApplicationServiceFactoryConfiguration.class
     })
     public static class SharedTestConfiguration {
+    }
+
+    @TestConfiguration(value = "YubiKeyTestConfiguration", proxyBeanMethods = false)
+    public static class YubiKeyTestConfiguration {
+        private static final String BAD_TOKEN = "123456";
+
+        @Bean
+        @RefreshScope(proxyMode = ScopedProxyMode.DEFAULT)
+        public YubiKeyAccountValidator yubiKeyAccountValidator() {
+            return (uid, token) -> !token.equals(BAD_TOKEN);
+        }
     }
 }

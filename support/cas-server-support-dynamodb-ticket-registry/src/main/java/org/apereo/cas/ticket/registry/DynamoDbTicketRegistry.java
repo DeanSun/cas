@@ -2,14 +2,15 @@ package org.apereo.cas.ticket.registry;
 
 import org.apereo.cas.ticket.Ticket;
 import org.apereo.cas.util.LoggingUtils;
-import org.apereo.cas.util.crypto.CipherExecutor;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collection;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * This is {@link DynamoDbTicketRegistry}.
@@ -18,21 +19,23 @@ import java.util.function.Predicate;
  * @since 5.1.0
  */
 @Slf4j
+@RequiredArgsConstructor
 public class DynamoDbTicketRegistry extends AbstractTicketRegistry {
     private final DynamoDbTicketRegistryFacilitator dbTableService;
 
-    public DynamoDbTicketRegistry(final CipherExecutor cipher, final DynamoDbTicketRegistryFacilitator dbTableService) {
-        setCipherExecutor(cipher);
-        this.dbTableService = dbTableService;
-        LOGGER.info("Setting up DynamoDb Ticket Registry instance");
+    @Override
+    public Stream<? extends Ticket> getSessionsFor(final String principalId) {
+        return this.dbTableService.getSessionsFor(encodeTicketId(principalId));
     }
 
     @Override
-    public void addTicket(final Ticket ticket) {
+    public void addTicketInternal(final Ticket ticket) {
         try {
-            LOGGER.debug("Adding ticket [{}] with ttl [{}s]", ticket.getId(), ticket.getExpirationPolicy().getTimeToLive());
+            LOGGER.debug("Adding ticket [{}] with ttl [{}s]", ticket.getId(),
+                ticket.getExpirationPolicy().getTimeToLive());
             val encTicket = encodeTicket(ticket);
-            this.dbTableService.put(ticket, encTicket);
+            val principal = encodeTicketId(getPrincipalIdFrom(ticket));
+            this.dbTableService.put(ticket, encTicket, principal);
         } catch (final Exception e) {
             LoggingUtils.error(LOGGER, e);
         }
@@ -45,9 +48,9 @@ public class DynamoDbTicketRegistry extends AbstractTicketRegistry {
             return null;
         }
         LOGGER.debug("Retrieving ticket [{}]", ticketId);
-        val ticket = this.dbTableService.get(ticketId, encTicketId);
+        val ticket = dbTableService.get(ticketId, encTicketId);
         val decodedTicket = decodeTicket(ticket);
-        if (predicate.test(decodedTicket)) {
+        if (decodedTicket != null && predicate.test(decodedTicket)) {
             return decodedTicket;
         }
         return null;
@@ -64,14 +67,14 @@ public class DynamoDbTicketRegistry extends AbstractTicketRegistry {
     }
 
     @Override
-    public Ticket updateTicket(final Ticket ticket) {
+    public Ticket updateTicket(final Ticket ticket) throws Exception {
         addTicket(ticket);
         return ticket;
     }
 
     @Override
-    public boolean deleteSingleTicket(final String ticketIdToDelete) {
+    public long deleteSingleTicket(final String ticketIdToDelete) {
         val ticketId = encodeTicketId(ticketIdToDelete);
-        return this.dbTableService.delete(ticketIdToDelete, ticketId);
+        return dbTableService.delete(ticketIdToDelete, ticketId) ? 1 : 0;
     }
 }

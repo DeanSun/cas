@@ -1,6 +1,8 @@
 package org.apereo.cas.services;
 
-import org.apereo.cas.ticket.TicketState;
+
+
+import org.apereo.cas.ticket.AuthenticationAwareTicket;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -14,6 +16,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
+import java.io.Serial;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 @EqualsAndHashCode(callSuper = true)
 @Slf4j
 public abstract class BaseDateTimeRegisteredServiceSingleSignOnParticipationPolicy extends DefaultRegisteredServiceSingleSignOnParticipationPolicy {
+    @Serial
     private static final long serialVersionUID = -5923946898337761319L;
 
     private TimeUnit timeUnit = TimeUnit.SECONDS;
@@ -42,14 +46,14 @@ public abstract class BaseDateTimeRegisteredServiceSingleSignOnParticipationPoli
     private int order;
 
     @Override
-    public boolean shouldParticipateInSso(final TicketState ticketState) {
+    public boolean shouldParticipateInSso(final RegisteredService registeredService, final AuthenticationAwareTicket ticketState) {
         LOGGER.trace("Calculating SSO participation criteria for [{}]", ticketState);
         if (timeValue <= 0) {
             return true;
         }
 
         val convertedNano = timeUnit.toNanos(timeValue);
-        val startingDate = determineInitialDateTime(ticketState);
+        val startingDate = determineInitialDateTime(registeredService, ticketState);
         val endingDate = startingDate.plusNanos(convertedNano);
         val currentTime = ZonedDateTime.now(ZoneOffset.UTC);
 
@@ -68,9 +72,10 @@ public abstract class BaseDateTimeRegisteredServiceSingleSignOnParticipationPoli
     /**
      * Determine initial date time zoned date time.
      *
-     * @param ticketState the ticket state
+     * @param registeredService the registered service
+     * @param ticketState       the ticket state
      * @return the zoned date time
      */
     @JsonIgnore
-    protected abstract ZonedDateTime determineInitialDateTime(TicketState ticketState);
+    protected abstract ZonedDateTime determineInitialDateTime(RegisteredService registeredService, AuthenticationAwareTicket ticketState);
 }

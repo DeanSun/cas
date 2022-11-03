@@ -3,7 +3,9 @@ package org.apereo.cas.authentication;
 import org.apereo.cas.authentication.principal.Service;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * This is {@link AuthenticationResultBuilder}. It attempts to collect authentication objects
@@ -15,6 +17,13 @@ import java.util.Optional;
  * @since 4.2.0
  */
 public interface AuthenticationResultBuilder extends Serializable {
+
+    /**
+     * Gets authentications.
+     *
+     * @return the authentications
+     */
+    Set<Authentication> getAuthentications();
 
     /**
      * Gets the initial authentication.
@@ -39,12 +48,29 @@ public interface AuthenticationResultBuilder extends Serializable {
     AuthenticationResultBuilder collect(Authentication authentication);
 
     /**
+     * Collect authentication result builder.
+     *
+     * @param authentications the authentication
+     * @return the authentication result builder
+     */
+    AuthenticationResultBuilder collect(Collection<Authentication> authentications);
+
+    /**
      * Provided credentials immediately by the user.
      *
      * @param credential the credential
      * @return the authentication context builder
      */
     AuthenticationResultBuilder collect(Credential credential);
+
+    /**
+     * Provided credential metadata collected for the authentication transaction.
+     * Metadata represents arbitrary details linked to a credential
+     * such as browser user agent, etc that do not strictly belong to a credential type.
+     * @param credential the credential
+     * @return the authentication context builder
+     */
+    AuthenticationResultBuilder collect(CredentialMetaData credential);
 
     /**
      * Build authentication result.

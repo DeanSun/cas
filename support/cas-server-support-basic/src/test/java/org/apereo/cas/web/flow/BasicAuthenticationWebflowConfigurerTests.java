@@ -21,10 +21,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @Import({
     CasBasicAuthenticationConfiguration.class,
     CasCoreMultifactorAuthenticationConfiguration.class,
-    CasMultifactorAuthenticationWebflowConfiguration.class,
-    BaseWebflowConfigurerTests.SharedTestConfiguration.class
+    CasMultifactorAuthenticationWebflowConfiguration.class
 })
-@Tag("Webflow")
+@Tag("WebflowConfig")
 public class BasicAuthenticationWebflowConfigurerTests extends BaseWebflowConfigurerTests {
     @Test
     public void verifyOperation() {

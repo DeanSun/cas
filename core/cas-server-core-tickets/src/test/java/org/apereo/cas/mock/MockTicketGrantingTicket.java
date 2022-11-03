@@ -10,20 +10,23 @@ import org.apereo.cas.authentication.handler.support.SimpleTestUsernamePasswordA
 import org.apereo.cas.authentication.metadata.BasicCredentialMetaData;
 import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
 import org.apereo.cas.authentication.principal.Service;
+import org.apereo.cas.ticket.AuthenticatedServicesAwareTicketGrantingTicket;
 import org.apereo.cas.ticket.ExpirationPolicy;
 import org.apereo.cas.ticket.ServiceTicket;
+import org.apereo.cas.ticket.ServiceTicketSessionTrackingPolicy;
 import org.apereo.cas.ticket.Ticket;
 import org.apereo.cas.ticket.TicketGrantingTicket;
-import org.apereo.cas.ticket.TicketState;
 import org.apereo.cas.ticket.UniqueTicketIdGenerator;
 import org.apereo.cas.ticket.expiration.TicketGrantingTicketExpirationPolicy;
 import org.apereo.cas.util.DefaultUniqueTicketIdGenerator;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 
+import java.io.Serial;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -43,23 +46,28 @@ import java.util.Set;
 @Getter
 @EqualsAndHashCode(of = "id")
 @SuppressWarnings("JdkObsolete")
-public class MockTicketGrantingTicket implements TicketGrantingTicket, TicketState {
+public class MockTicketGrantingTicket implements AuthenticatedServicesAwareTicketGrantingTicket {
 
     public static final UniqueTicketIdGenerator ID_GENERATOR = new DefaultUniqueTicketIdGenerator();
 
+    @Serial
     private static final long serialVersionUID = 6546995681334670659L;
 
     private final String id;
 
     private final Authentication authentication;
 
-    private final ZonedDateTime created;
-
     private final Map<String, Service> services = new HashMap<>();
 
     private final Map<String, Service> proxyGrantingTickets = new HashMap<>();
 
     private final Set<String> descendantTickets = new LinkedHashSet<>();
+
+    @Setter
+    private Service proxiedBy;
+
+    @Setter
+    private ZonedDateTime created;
 
     private int usageCount;
 
@@ -110,17 +118,18 @@ public class MockTicketGrantingTicket implements TicketGrantingTicket, TicketSta
             principalAttributes);
     }
 
-    public ServiceTicket grantServiceTicket(final Service service) {
+    public ServiceTicket grantServiceTicket(final Service service,
+                                            final ServiceTicketSessionTrackingPolicy trackingPolicy) {
         return grantServiceTicket(ID_GENERATOR.getNewTicketId("ST"), service, null,
-            false, true);
+            false, trackingPolicy);
     }
 
     @Override
     public ServiceTicket grantServiceTicket(final String id, final Service service, final ExpirationPolicy expirationPolicy,
-                                            final boolean credentialProvided, final boolean onlyTrackMostRecentSession) {
-        update();
+                                            final boolean credentialProvided,
+                                            final ServiceTicketSessionTrackingPolicy trackingPolicy) {
         val st = new MockServiceTicket(id, service, this, expirationPolicy);
-        this.services.put(id, service);
+        trackingPolicy.track(this, st);
         return st;
     }
 
@@ -139,6 +148,7 @@ public class MockTicketGrantingTicket implements TicketGrantingTicket, TicketSta
     }
 
     @Override
+    @CanIgnoreReturnValue
     public TicketGrantingTicket getRoot() {
         return this;
     }
@@ -146,11 +156,6 @@ public class MockTicketGrantingTicket implements TicketGrantingTicket, TicketSta
     @Override
     public List<Authentication> getChainedAuthentications() {
         return new ArrayList<>(0);
-    }
-
-    @Override
-    public Service getProxiedBy() {
-        return null;
     }
 
     @Override
@@ -193,6 +198,10 @@ public class MockTicketGrantingTicket implements TicketGrantingTicket, TicketSta
         usageCount++;
     }
 
+    @Override
+    public String toString() {
+        return getId();
+    }
 
     @Override
     public int compareTo(final Ticket o) {

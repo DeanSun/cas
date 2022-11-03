@@ -1,7 +1,6 @@
 package org.apereo.cas.authentication;
 
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.ticket.TicketGrantingTicket;
 import org.apereo.cas.ticket.expiration.builder.TicketGrantingTicketExpirationPolicyBuilder;
 
 import lombok.val;
@@ -22,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest(classes = RefreshAutoConfiguration.class)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
-@Tag("Simple")
+@Tag("ExpirationPolicy")
 public class SurrogateAuthenticationExpirationPolicyBuilderTests {
     @Autowired
     private CasConfigurationProperties casProperties;
@@ -31,7 +30,6 @@ public class SurrogateAuthenticationExpirationPolicyBuilderTests {
     public void verifyOperation() {
         val builder = new SurrogateAuthenticationExpirationPolicyBuilder(
             new TicketGrantingTicketExpirationPolicyBuilder(casProperties), casProperties);
-        assertEquals(TicketGrantingTicket.class, builder.getTicketType());
-        assertNotNull(builder.toTicketExpirationPolicy());
+        assertNotNull(builder.buildTicketExpirationPolicy());
     }
 }

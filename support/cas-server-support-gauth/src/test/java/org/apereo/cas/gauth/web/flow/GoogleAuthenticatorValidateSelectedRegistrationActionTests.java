@@ -8,18 +8,15 @@ import org.apereo.cas.web.support.WebUtils;
 import lombok.val;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.binding.message.MessageContext;
+import org.springframework.binding.message.DefaultMessageContext;
+import org.springframework.context.MessageSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.webflow.context.ExternalContextHolder;
 import org.springframework.webflow.context.servlet.ServletExternalContext;
-import org.springframework.webflow.core.collection.LocalAttributeMap;
-import org.springframework.webflow.engine.Flow;
-import org.springframework.webflow.execution.RequestContext;
 import org.springframework.webflow.execution.RequestContextHolder;
-import org.springframework.webflow.test.MockFlowExecutionContext;
-import org.springframework.webflow.test.MockFlowSession;
+import org.springframework.webflow.test.MockRequestContext;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,22 +30,18 @@ import static org.mockito.Mockito.*;
  * @author Misagh Moayyed
  * @since 6.3.0
  */
-@Tag("Webflow")
+@Tag("WebflowMfaActions")
 public class GoogleAuthenticatorValidateSelectedRegistrationActionTests {
 
     @Test
     public void verifyOperation() throws Exception {
-        val context = mock(RequestContext.class);
-        when(context.getConversationScope()).thenReturn(new LocalAttributeMap<>());
-        when(context.getFlowScope()).thenReturn(new LocalAttributeMap<>());
-        when(context.getRequestScope()).thenReturn(new LocalAttributeMap<>());
-        when(context.getMessageContext()).thenReturn(mock(MessageContext.class));
-        when(context.getFlowExecutionContext()).thenReturn(
-            new MockFlowExecutionContext(new MockFlowSession(new Flow("mockFlow"))));
+        val context = new MockRequestContext();
+        val messageContext = (DefaultMessageContext) context.getMessageContext();
+        messageContext.setMessageSource(mock(MessageSource.class));
 
         val request = new MockHttpServletRequest();
         val response = new MockHttpServletResponse();
-        when(context.getExternalContext()).thenReturn(new ServletExternalContext(new MockServletContext(), request, response));
+        context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, response));
         RequestContextHolder.setRequestContext(context);
         ExternalContextHolder.setExternalContext(context.getExternalContext());
 

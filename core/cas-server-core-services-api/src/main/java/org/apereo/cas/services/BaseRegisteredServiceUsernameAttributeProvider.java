@@ -2,6 +2,7 @@ package org.apereo.cas.services;
 
 import org.apereo.cas.authentication.principal.Principal;
 import org.apereo.cas.authentication.principal.Service;
+import org.apereo.cas.util.function.FunctionUtils;
 import org.apereo.cas.util.spring.ApplicationContextProvider;
 
 import lombok.AccessLevel;
@@ -16,6 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apereo.services.persondir.util.CaseCanonicalizationMode;
 
 import javax.persistence.PostLoad;
+import java.io.Serial;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -33,18 +35,22 @@ import java.util.Optional;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public abstract class BaseRegisteredServiceUsernameAttributeProvider implements RegisteredServiceUsernameAttributeProvider {
 
+    @Serial
     private static final long serialVersionUID = -8381275200333399951L;
 
     private String canonicalizationMode = CaseCanonicalizationMode.NONE.name();
 
     private boolean encryptUsername;
 
+    private String scope;
+
     @Override
     public final String resolveUsername(final Principal principal, final Service service, final RegisteredService registeredService) {
-        val username = resolveUsernameInternal(principal, service, registeredService);
+        val resolved = resolveUsernameInternal(principal, service, registeredService);
         if (canonicalizationMode == null) {
             canonicalizationMode = CaseCanonicalizationMode.NONE.name();
         }
+        val username = FunctionUtils.doIfNotNull(scope, () -> String.format("%s@%s", resolved, scope), () -> resolved).get();
         val uid = CaseCanonicalizationMode.valueOf(canonicalizationMode).canonicalize(username.trim(), Locale.getDefault());
         LOGGER.debug("Resolved username for [{}] is [{}]", service, uid);
         if (!this.encryptUsername) {
@@ -68,7 +74,7 @@ public abstract class BaseRegisteredServiceUsernameAttributeProvider implements 
      */
     protected String encryptResolvedUsername(final Principal principal, final Service service, final RegisteredService registeredService, final String username) {
         val applicationContext = ApplicationContextProvider.getApplicationContext();
-        val cipher = applicationContext.getBean("registeredServiceCipherExecutor", RegisteredServiceCipherExecutor.class);
+        val cipher = applicationContext.getBean(RegisteredServiceCipherExecutor.DEFAULT_BEAN_NAME, RegisteredServiceCipherExecutor.class);
         return cipher.encode(username, Optional.of(registeredService));
     }
 

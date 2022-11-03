@@ -1,6 +1,7 @@
 package org.apereo.cas.adaptors.yubikey;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.apereo.cas.util.function.FunctionUtils;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.AllArgsConstructor;
@@ -10,16 +11,22 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
+import lombok.val;
 import org.springframework.data.annotation.Id;
 
+import javax.persistence.CollectionTable;
 import javax.persistence.Column;
-import javax.persistence.Lob;
+import javax.persistence.ElementCollection;
+import javax.persistence.FetchType;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
-
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * This is {@link YubiKeyAccount}.
@@ -36,17 +43,19 @@ import java.util.ArrayList;
 @EqualsAndHashCode(of = {"id", "username"})
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 @SuperBuilder
-public class YubiKeyAccount implements Serializable {
+@Accessors(chain = true)
+public class YubiKeyAccount implements Serializable, Cloneable {
     /**
      * username field.
      */
     public static final String FIELD_USERNAME = "username";
 
     /**
-     * Device identifiers field.
+     * devices field.
      */
-    public static final String FIELD_DEVICE_IDENTIFIERS = "deviceIdentifiers";
+    public static final String FIELD_DEVICES = "devices";
 
+    @Serial
     private static final long serialVersionUID = 311869140885521905L;
 
     @Id
@@ -55,23 +64,24 @@ public class YubiKeyAccount implements Serializable {
     @Builder.Default
     private long id = System.currentTimeMillis();
 
-    @Lob
-    @Column(name = "deviceIdentifiers", length = Integer.MAX_VALUE)
-    @JsonProperty
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "YubiKeyRegisteredDevice")
     @Builder.Default
-    private ArrayList<String> deviceIdentifiers = new ArrayList<>(0);
+    private List<YubiKeyRegisteredDevice> devices = new ArrayList<>(0);
 
     @Column(nullable = false)
     @JsonProperty
     private String username;
 
-    /**
-     * Register device.
-     *
-     * @param device the device
-     */
-    @JsonIgnore
-    public void registerDevice(final String device) {
-        this.deviceIdentifiers.add(device);
+    @Override
+    public YubiKeyAccount clone() {
+        return FunctionUtils.doUnchecked(() -> {
+            val account = (YubiKeyAccount) super.clone();
+            account.setDevices(getDevices()
+                .stream()
+                .map(YubiKeyRegisteredDevice::clone)
+                .collect(Collectors.toList()));
+            return account;
+        });
     }
 }

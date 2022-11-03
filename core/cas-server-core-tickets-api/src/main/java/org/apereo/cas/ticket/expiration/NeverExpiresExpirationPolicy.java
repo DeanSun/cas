@@ -1,7 +1,8 @@
 package org.apereo.cas.ticket.expiration;
 
 import org.apereo.cas.ticket.ExpirationPolicy;
-import org.apereo.cas.ticket.TicketState;
+import org.apereo.cas.ticket.TicketGrantingTicketAwareTicket;
+
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -9,6 +10,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+
+import java.io.Serial;
 
 /**
  * NeverExpiresExpirationPolicy always answers false when asked if a Ticket is
@@ -30,13 +33,11 @@ public class NeverExpiresExpirationPolicy extends AbstractCasExpirationPolicy {
      */
     public static final ExpirationPolicy INSTANCE = new NeverExpiresExpirationPolicy();
 
-    /**
-     * Serializable Unique ID.
-     */
+    @Serial
     private static final long serialVersionUID = 3833747698242303540L;
 
     @Override
-    public boolean isExpired(final TicketState ticketState) {
+    public boolean isExpired(final TicketGrantingTicketAwareTicket ticketState) {
         return false;
     }
 

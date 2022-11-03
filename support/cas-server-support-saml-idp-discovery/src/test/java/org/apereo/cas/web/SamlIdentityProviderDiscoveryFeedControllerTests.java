@@ -2,6 +2,7 @@ package org.apereo.cas.web;
 
 import org.apereo.cas.CasProtocolConstants;
 import org.apereo.cas.config.SamlIdentityProviderDiscoveryConfiguration;
+import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.services.DefaultRegisteredServiceAccessStrategy;
 import org.apereo.cas.services.DefaultRegisteredServiceDelegatedAuthenticationPolicy;
 import org.apereo.cas.services.RegisteredServiceTestUtils;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -27,18 +29,19 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.2.0
  */
-@Tag("SAML")
+@Tag("SAML2Web")
 @SpringBootTest(classes = {
     BaseDelegatedAuthenticationTests.SharedTestConfiguration.class,
     SamlIdentityProviderDiscoveryConfiguration.class
 })
+@EnableConfigurationProperties(CasConfigurationProperties.class)
 public class SamlIdentityProviderDiscoveryFeedControllerTests {
     @Autowired
     @Qualifier("identityProviderDiscoveryFeedController")
     private SamlIdentityProviderDiscoveryFeedController controller;
 
     @Autowired
-    @Qualifier("servicesManager")
+    @Qualifier(ServicesManager.BEAN_NAME)
     private ServicesManager servicesManager;
 
     @Test
@@ -53,8 +56,10 @@ public class SamlIdentityProviderDiscoveryFeedControllerTests {
             request.addParameter(CasProtocolConstants.PARAMETER_SERVICE, "https://service.example");
 
             val accessStrategy = new DefaultRegisteredServiceAccessStrategy();
-            accessStrategy.setDelegatedAuthenticationPolicy(
-                new DefaultRegisteredServiceDelegatedAuthenticationPolicy(List.of("OtherClient"), false, false));
+            val policy = new DefaultRegisteredServiceDelegatedAuthenticationPolicy();
+            policy.setAllowedProviders(List.of("OtherClient"));
+            policy.setPermitUndefined(false);
+            accessStrategy.setDelegatedAuthenticationPolicy(policy);
             val service = RegisteredServiceTestUtils.getRegisteredService("https://service.example");
             service.setAccessStrategy(accessStrategy);
             servicesManager.save(service);

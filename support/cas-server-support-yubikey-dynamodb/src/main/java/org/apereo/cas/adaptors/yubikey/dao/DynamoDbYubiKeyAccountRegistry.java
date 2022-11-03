@@ -2,13 +2,14 @@ package org.apereo.cas.adaptors.yubikey.dao;
 
 import org.apereo.cas.adaptors.yubikey.YubiKeyAccount;
 import org.apereo.cas.adaptors.yubikey.YubiKeyAccountValidator;
+import org.apereo.cas.adaptors.yubikey.YubiKeyDeviceRegistrationRequest;
+import org.apereo.cas.adaptors.yubikey.YubiKeyRegisteredDevice;
 import org.apereo.cas.adaptors.yubikey.registry.BaseYubiKeyAccountRegistry;
 
 import lombok.val;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -18,61 +19,31 @@ import java.util.stream.Collectors;
  * @since 6.3.0
  */
 public class DynamoDbYubiKeyAccountRegistry extends BaseYubiKeyAccountRegistry {
-    private final YubiKeyDynamoDbFacilitator dynamoDbFacilitator;
+    private final DynamoDbYubiKeyFacilitator dynamoDbFacilitator;
 
     public DynamoDbYubiKeyAccountRegistry(final YubiKeyAccountValidator accountValidator,
-                                          final YubiKeyDynamoDbFacilitator dynamoDbFacilitator) {
+                                          final DynamoDbYubiKeyFacilitator dynamoDbFacilitator) {
         super(accountValidator);
         this.dynamoDbFacilitator = dynamoDbFacilitator;
     }
 
     @Override
-    public boolean registerAccountFor(final String uid, final String token) {
-        val accountValidator = getAccountValidator();
-        if (accountValidator.isValid(uid, token)) {
-            val yubikeyPublicId = getCipherExecutor().encode(accountValidator.getTokenPublicId(token));
-
-            val results = dynamoDbFacilitator.getAccounts(uid);
-            val account = results.isEmpty() ? new YubiKeyAccount() : results.get(0);
-            account.registerDevice(yubikeyPublicId);
-            account.setUsername(uid);
-            if (results.isEmpty()) {
-                return dynamoDbFacilitator.save(account);
-            }
-            return dynamoDbFacilitator.update(account);
-        }
-        return false;
+    public Collection<? extends YubiKeyAccount> getAccountsInternal() {
+        return dynamoDbFacilitator.getAccounts();
     }
 
     @Override
-    public Collection<? extends YubiKeyAccount> getAccounts() {
-        return dynamoDbFacilitator.getAccounts()
-            .stream()
-            .peek(it -> {
-                val devices = it.getDeviceIdentifiers().stream()
-                    .map(pubId -> getCipherExecutor().decode(pubId))
-                    .collect(Collectors.toCollection(ArrayList::new));
-                it.setDeviceIdentifiers(devices);
-            })
-            .collect(Collectors.toList());
-    }
-
-    @Override
-    public Optional<? extends YubiKeyAccount> getAccount(final String uid) {
+    public YubiKeyAccount getAccountInternal(final String uid) {
         val accounts = dynamoDbFacilitator.getAccounts(uid);
         if (accounts.isEmpty()) {
-            return Optional.empty();
+            return null;
         }
-        val account = accounts.iterator().next();
-        val devices = account.getDeviceIdentifiers().stream()
-            .map(pubId -> getCipherExecutor().decode(pubId))
-            .collect(Collectors.toCollection(ArrayList::new));
-        val yubiAccount = YubiKeyAccount.builder()
-            .id(account.getId())
-            .username(account.getUsername())
-            .deviceIdentifiers(devices)
-            .build();
-        return Optional.of(yubiAccount);
+        return accounts.iterator().next();
+    }
+
+    @Override
+    public void delete(final String username, final long deviceId) {
+        dynamoDbFacilitator.delete(username, deviceId);
     }
 
     @Override
@@ -83,5 +54,28 @@ public class DynamoDbYubiKeyAccountRegistry extends BaseYubiKeyAccountRegistry {
     @Override
     public void deleteAll() {
         dynamoDbFacilitator.removeDevices();
+    }
+
+    @Override
+    public YubiKeyAccount save(final YubiKeyDeviceRegistrationRequest request,
+                               final YubiKeyRegisteredDevice... device) {
+        val account = YubiKeyAccount.builder()
+            .username(request.getUsername())
+            .devices(Arrays.stream(device).collect(Collectors.toList()))
+            .build();
+        return save(account);
+    }
+
+    @Override
+    public YubiKeyAccount save(final YubiKeyAccount account) {
+        if (dynamoDbFacilitator.save(account)) {
+            return account;
+        }
+        return null;
+    }
+
+    @Override
+    public boolean update(final YubiKeyAccount account) {
+        return dynamoDbFacilitator.update(account);
     }
 }

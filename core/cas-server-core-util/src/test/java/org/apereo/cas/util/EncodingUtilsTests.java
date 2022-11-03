@@ -38,7 +38,7 @@ public class EncodingUtilsTests {
         val signed = EncodingUtils.signJwsHMACSha512(key, value.getBytes(StandardCharsets.UTF_8), Map.of());
         val jwt = EncodingUtils.verifyJwsSignature(key, signed);
         val result = new String(jwt, StandardCharsets.UTF_8);
-        assertTrue(result.equals(value));
+        assertEquals(value, result);
     }
 
     @Test
@@ -47,7 +47,7 @@ public class EncodingUtilsTests {
         val signed = EncodingUtils.signJwsRSASha512(getPrivateKey(), value.getBytes(StandardCharsets.UTF_8), Map.of());
         val jwt = EncodingUtils.verifyJwsSignature(getPublicKey(), signed);
         val result = new String(jwt, StandardCharsets.UTF_8);
-        assertTrue(result.equals(value));
+        assertEquals(value, result);
     }
 
     @Test
@@ -57,7 +57,7 @@ public class EncodingUtilsTests {
         val value = "ThisValue";
         val found = EncodingUtils.encryptValueAsJwtDirectAes128Sha256(key, value);
         val jwt = EncodingUtils.decryptJwtValue(key, found);
-        assertTrue(jwt.equals(value));
+        assertEquals(value, jwt);
 
         assertThrows(DecryptionException.class, () -> EncodingUtils.decryptJwtValue(key, null));
     }
@@ -67,7 +67,7 @@ public class EncodingUtilsTests {
         val value = "ThisValue";
         val found = EncodingUtils.encryptValueAsJwtRsaOeap256Aes256Sha512(getPublicKey(), value);
         val jwt = EncodingUtils.decryptJwtValue(getPrivateKey(), found);
-        assertTrue(jwt.equals(value));
+        assertEquals(value, jwt);
     }
 
     @Test
@@ -82,10 +82,13 @@ public class EncodingUtilsTests {
 
     @Test
     public void verifyEncoding() {
+        assertNull(EncodingUtils.urlDecode(null));
+        
         assertTrue(EncodingUtils.encodeBase64(ArrayUtils.EMPTY_BYTE_ARRAY, true).isEmpty());
         assertFalse(EncodingUtils.encodeBase64("one".getBytes(StandardCharsets.UTF_8), true).isEmpty());
 
         assertFalse(EncodingUtils.encodeBase32("one".getBytes(StandardCharsets.UTF_8), true).isEmpty());
+        assertFalse(EncodingUtils.encodeBase32("one".getBytes(StandardCharsets.UTF_8), false).isEmpty());
         assertFalse(EncodingUtils.encodeBase64("one".getBytes(StandardCharsets.UTF_8), false).isEmpty());
     }
 
@@ -95,7 +98,7 @@ public class EncodingUtilsTests {
         factory.setAlgorithm(RsaKeyUtil.RSA);
         factory.setLocation(new ClassPathResource("keys/RSA2048Private.key"));
         factory.setSingleton(false);
-        assertEquals(PrivateKey.class, factory.getObjectType());
+        assertSame(PrivateKey.class, factory.getObjectType());
         return factory.getObject();
     }
 
@@ -103,7 +106,7 @@ public class EncodingUtilsTests {
     private static PublicKey getPublicKey() {
         val factory = new PublicKeyFactoryBean(new ClassPathResource("keys/RSA2048Public.key"), RsaKeyUtil.RSA);
         factory.setSingleton(false);
-        assertEquals(PublicKey.class, factory.getObjectType());
+        assertSame(PublicKey.class, factory.getObjectType());
         return factory.getObject();
     }
 }

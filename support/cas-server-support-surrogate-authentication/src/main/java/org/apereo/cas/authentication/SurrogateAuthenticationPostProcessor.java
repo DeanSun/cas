@@ -67,14 +67,13 @@ public class SurrogateAuthenticationPostProcessor implements AuthenticationPostP
                     .service(transaction.getService())
                     .authentication(authentication)
                     .registeredService(svc)
-                    .retrievePrincipalAttributesFromReleasePolicy(Boolean.FALSE)
                     .build();
 
                 val accessResult = this.registeredServiceAccessStrategyEnforcer.execute(serviceAccessAudit);
                 accessResult.throwExceptionIfNeeded();
             }
 
-            if (surrogateAuthenticationService.canAuthenticateAs(targetUserId, primaryPrincipal.getPrimary(), Optional.ofNullable(transaction.getService()))) {
+            if (surrogateAuthenticationService.canImpersonate(targetUserId, primaryPrincipal.getPrimary(), Optional.ofNullable(transaction.getService()))) {
                 LOGGER.debug("Principal [{}] is authorized to authenticate as [{}]", primaryPrincipal, targetUserId);
                 publishSuccessEvent(primaryPrincipal, targetUserId);
 

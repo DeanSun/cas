@@ -1,26 +1,17 @@
 package org.apereo.cas.support.events.listener;
 
-import org.apereo.cas.configuration.CasConfigurationPropertiesEnvironmentManager;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.apereo.cas.util.spring.CasEventListener;
 import org.springframework.cloud.bus.event.RefreshRemoteApplicationEvent;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 
 /**
- * This is {@link CasCloudBusConfigurationEventListener}.
- *
- * @author Misagh Moayyed
- * @since 5.1.0
+ * Interface for {@code DefaultCasCloudBusConfigurationEventListener} to allow spring {@code @Async} support to use JDK proxy.
+ * @author Hal Deadman
+ * @since 6.5.0
  */
-@Slf4j
-@RequiredArgsConstructor
-public class CasCloudBusConfigurationEventListener {
-    private final CasConfigurationPropertiesEnvironmentManager configurationPropertiesEnvironmentManager;
-
-    private final ApplicationContext applicationContext;
+@FunctionalInterface
+public interface CasCloudBusConfigurationEventListener extends CasEventListener {
 
     /**
      * Handle refresh event when issued by the cloud bus.
@@ -29,8 +20,5 @@ public class CasCloudBusConfigurationEventListener {
      */
     @EventListener
     @Async
-    public void handleRefreshEvent(final RefreshRemoteApplicationEvent event) {
-        LOGGER.trace("Received event [{}]", event);
-        configurationPropertiesEnvironmentManager.rebindCasConfigurationProperties(this.applicationContext);
-    }
+    void handleRefreshEvent(RefreshRemoteApplicationEvent event);
 }

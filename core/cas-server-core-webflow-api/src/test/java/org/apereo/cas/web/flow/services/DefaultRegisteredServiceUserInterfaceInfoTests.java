@@ -1,11 +1,12 @@
 package org.apereo.cas.web.flow.services;
 
-import org.apereo.cas.services.RegisteredService;
+import org.apereo.cas.services.WebBasedRegisteredService;
 
 import lombok.val;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.io.Serial;
 import java.util.Collection;
 import java.util.List;
 
@@ -22,7 +23,8 @@ import static org.mockito.Mockito.*;
 public class DefaultRegisteredServiceUserInterfaceInfoTests {
     @Test
     public void verifyOperation() {
-        val info = new DefaultRegisteredServiceUserInterfaceInfo(mock(RegisteredService.class)) {
+        val info = new DefaultRegisteredServiceUserInterfaceInfo(mock(WebBasedRegisteredService.class)) {
+            @Serial
             private static final long serialVersionUID = 2331519665722637762L;
 
             @Override
@@ -58,12 +60,13 @@ public class DefaultRegisteredServiceUserInterfaceInfoTests {
 
     @Test
     public void verifySpecialCases() {
-        val service = mock(RegisteredService.class);
+        val service = mock(WebBasedRegisteredService.class);
         when(service.getInformationUrl()).thenReturn("https://apereo.org/cas");
         when(service.getPrivacyUrl()).thenReturn("https://apereo.org/cas");
         when(service.getLogo()).thenReturn("https://apereo.org/cas");
 
         val info = new DefaultRegisteredServiceUserInterfaceInfo(service) {
+            @Serial
             private static final long serialVersionUID = 2331519665722637762L;
 
             @Override
@@ -98,4 +101,24 @@ public class DefaultRegisteredServiceUserInterfaceInfoTests {
         assertTrue(info.getLogoHeight() > 0);
     }
 
+    @Test
+    public void verifyDefault() {
+        val service = mock(WebBasedRegisteredService.class);
+        val info = new DefaultRegisteredServiceUserInterfaceInfo(service) {
+            @Serial
+            private static final long serialVersionUID = 2331519665722637762L;
+
+            @Override
+            public Collection<String> getInformationURLs() {
+                return List.of("informationUrl");
+            }
+
+            @Override
+            public Collection<String> getPrivacyStatementURLs() {
+                return List.of("PrivacyStatement");
+            }
+        };
+        assertNotNull(info.getInformationURL());
+        assertNotNull(info.getPrivacyStatementURL());
+    }
 }

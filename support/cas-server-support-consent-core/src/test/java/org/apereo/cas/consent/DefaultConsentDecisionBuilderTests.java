@@ -1,11 +1,8 @@
 package org.apereo.cas.consent;
 
-import org.apereo.cas.audit.spi.config.CasCoreAuditConfiguration;
-import org.apereo.cas.config.CasConsentCoreConfiguration;
-import org.apereo.cas.config.CasCoreHttpConfiguration;
-import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.services.RegisteredServiceTestUtils;
 import org.apereo.cas.util.CollectionUtils;
+import org.apereo.cas.util.crypto.CipherExecutor;
 
 import lombok.val;
 import org.junit.jupiter.api.Tag;
@@ -13,11 +10,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * This is {@link DefaultConsentDecisionBuilderTests}.
@@ -25,18 +22,20 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 5.2.0
  */
-@SpringBootTest(classes = {
-    CasConsentCoreConfiguration.class,
-    CasCoreAuditConfiguration.class,
-    RefreshAutoConfiguration.class,
-    CasCoreHttpConfiguration.class,
-    CasCoreUtilConfiguration.class
-})
-@Tag("Simple")
+@SpringBootTest(classes = BaseConsentRepositoryTests.SharedTestConfiguration.class)
+@Tag("Consent")
 public class DefaultConsentDecisionBuilderTests {
     @Autowired
-    @Qualifier("consentDecisionBuilder")
+    @Qualifier(ConsentDecisionBuilder.BEAN_NAME)
     private ConsentDecisionBuilder consentDecisionBuilder;
+
+    @Test
+    public void verifyUnableToDecodeConsentDecision() {
+        val consentDecision = mock(ConsentDecision.class);
+        when(consentDecision.getAttributes()).thenCallRealMethod();
+        val builder = new DefaultConsentDecisionBuilder(CipherExecutor.noOpOfSerializableToString());
+        assertTrue(builder.getConsentableAttributesFrom(consentDecision).isEmpty());
+    }
 
     @Test
     public void verifyNewConsentDecision() {

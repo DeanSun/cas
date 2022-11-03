@@ -14,6 +14,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import java.io.Serial;
 
 /**
  * This is {@link MySQLSamlIdPMetadataDocument}.
@@ -23,31 +24,19 @@ import javax.persistence.Table;
  */
 @NoArgsConstructor
 @AttributeOverrides({
-    @AttributeOverride(
-        name = "metadata",
-        column = @Column(columnDefinition = "text")
-    ),
-    @AttributeOverride(
-        name = "signingCertificate",
-        column = @Column(columnDefinition = "text")
-    ),
-    @AttributeOverride(
-        name = "signingKey",
-        column = @Column(columnDefinition = "text")
-    ),
-    @AttributeOverride(
-        name = "encryptionCertificate",
-        column = @Column(columnDefinition = "text")
-    ),
-    @AttributeOverride(
-        name = "encryptionKey",
-        column = @Column(columnDefinition = "text")
-    )
+    @AttributeOverride(name = "metadata", column = @Column(columnDefinition = "text")),
+    @AttributeOverride(name = "signingCertificate", column = @Column(columnDefinition = "text")),
+    @AttributeOverride(name = "signingKey", column = @Column(columnDefinition = "text")),
+    @AttributeOverride(name = "encryptionCertificate", column = @Column(columnDefinition = "text")),
+    @AttributeOverride(name = "encryptionKey", column = @Column(columnDefinition = "text"))
 })
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 @Entity(name = "SamlIdPMetadataDocument")
 @Table(name = "SamlIdPMetadataDocument")
 public class MySQLSamlIdPMetadataDocument extends SamlIdPMetadataDocument {
+    @Serial
+    private static final long serialVersionUID = 547459357921290008L;
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator = "native")
     @GenericGenerator(name = "native", strategy = "native")

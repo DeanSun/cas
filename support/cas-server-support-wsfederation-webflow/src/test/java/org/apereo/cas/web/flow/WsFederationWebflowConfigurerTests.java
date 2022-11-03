@@ -29,8 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
     WsFedAuthenticationEventExecutionPlanConfiguration.class,
     WsFederationAuthenticationWebflowConfiguration.class,
     CasCoreMultifactorAuthenticationConfiguration.class,
-    CasMultifactorAuthenticationWebflowConfiguration.class,
-    BaseWebflowConfigurerTests.SharedTestConfiguration.class
+    CasMultifactorAuthenticationWebflowConfiguration.class
 })
 @TestPropertySource(properties = {
     "cas.authn.wsfed[0].identity-provider-url=https://example.org/adfs/ls/",
@@ -39,14 +38,14 @@ import static org.junit.jupiter.api.Assertions.*;
     "cas.authn.wsfed[0].signing-certificate-resources=classpath:adfs-signing.crt",
     "cas.authn.wsfed[0].identity-attribute=upn"
 })
-@Tag("Webflow")
+@Tag("WebflowConfig")
 public class WsFederationWebflowConfigurerTests extends BaseWebflowConfigurerTests {
     @Test
     public void verifyOperation() {
         assertFalse(casWebflowExecutionPlan.getWebflowConfigurers().isEmpty());
         val flow = (Flow) this.loginFlowDefinitionRegistry.getFlowDefinition(CasWebflowConfigurer.FLOW_ID_LOGIN);
         assertNotNull(flow);
-        var state = (TransitionableState) flow.getState(WsFederationWebflowConfigurer.STATE_ID_WS_FEDERATION_ACTION);
+        var state = (TransitionableState) flow.getState(CasWebflowConstants.STATE_ID_WS_FEDERATION_START);
         assertNotNull(state);
     }
 }

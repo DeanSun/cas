@@ -7,7 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.core.Ordered;
 
+import java.io.Serial;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +21,7 @@ import java.util.Map;
  */
 @Slf4j
 public class SurrogatePrincipalElectionStrategy extends DefaultPrincipalElectionStrategy {
+    @Serial
     private static final long serialVersionUID = -3112906686072339162L;
 
     @Override
@@ -45,7 +48,7 @@ public class SurrogatePrincipalElectionStrategy extends DefaultPrincipalElection
 
     @Override
     public Principal nominate(final List<Principal> principals, final Map<String, List<Object>> attributes) {
-        LOGGER.trace("Calculating principal from principals [{}]", principals);
+        LOGGER.debug("Calculating principal from principals [{}]", principals);
         val result = principals
             .stream()
             .filter(SurrogatePrincipal.class::isInstance)
@@ -53,6 +56,14 @@ public class SurrogatePrincipalElectionStrategy extends DefaultPrincipalElection
             .findFirst();
         if (result.isPresent()) {
             val surrogate = result.get();
+            
+            principals.removeIf(SurrogatePrincipal.class::isInstance);
+            val primaryAttributes = new LinkedHashMap<>(surrogate.getPrimary().getAttributes());
+            principals.forEach(principal -> {
+                val merged = CoreAuthenticationUtils.mergeAttributes(primaryAttributes, principal.getAttributes(), getAttributeMerger());
+                primaryAttributes.putAll(merged);
+            });
+            surrogate.getPrimary().getAttributes().putAll(primaryAttributes);
             LOGGER.debug("Found surrogate principal [{}]", surrogate);
             return surrogate;
         }

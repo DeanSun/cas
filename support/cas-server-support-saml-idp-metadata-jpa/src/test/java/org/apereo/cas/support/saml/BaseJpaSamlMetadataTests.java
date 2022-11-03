@@ -8,7 +8,6 @@ import org.apereo.cas.support.saml.idp.metadata.generator.SamlIdPMetadataGenerat
 import org.apereo.cas.support.saml.idp.metadata.locator.SamlIdPMetadataLocator;
 import org.apereo.cas.support.saml.services.idp.metadata.cache.resolver.SamlRegisteredServiceMetadataResolver;
 
-import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -29,11 +28,11 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
     BaseSamlIdPMetadataTests.SharedTestConfiguration.class
 })
 @EnableConfigurationProperties(CasConfigurationProperties.class)
-@EnableTransactionManagement(proxyTargetClass = true)
-@Tag("SAML")
+@EnableTransactionManagement(proxyTargetClass = false)
 @TestPropertySource(properties = {
-    "cas.jdbc.show-sql=true",
-    "cas.authn.saml-idp.metadata.location=${#systemProperties['java.io.tmpdir']}/saml"
+    "cas.jdbc.show-sql=false",
+    "cas.authn.saml-idp.metadata.jpa.ddl-auto=create-drop",
+    "cas.authn.saml-idp.metadata.file-system.location=${#systemProperties['java.io.tmpdir']}/saml"
 })
 public abstract class BaseJpaSamlMetadataTests {
     @Autowired
@@ -47,4 +46,8 @@ public abstract class BaseJpaSamlMetadataTests {
     @Autowired
     @Qualifier("samlIdPMetadataLocator")
     protected SamlIdPMetadataLocator samlIdPMetadataLocator;
+
+    @Autowired
+    @Qualifier(OpenSamlConfigBean.DEFAULT_BEAN_NAME)
+    protected OpenSamlConfigBean openSamlConfigBean;
 }

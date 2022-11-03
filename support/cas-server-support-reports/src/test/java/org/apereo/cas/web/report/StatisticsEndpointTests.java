@@ -27,16 +27,23 @@ public class StatisticsEndpointTests extends AbstractCasEndpointTests {
     private StatisticsEndpoint statisticsEndpoint;
 
     @Autowired
-    @Qualifier("centralAuthenticationService")
+    @Qualifier(CentralAuthenticationService.BEAN_NAME)
     private CentralAuthenticationService centralAuthenticationService;
 
     @BeforeEach
     public void setup() {
         val result = CoreAuthenticationTestUtils.getAuthenticationResult();
-        val tgt = centralAuthenticationService.createTicketGrantingTicket(result);
-        val st = centralAuthenticationService.grantServiceTicket(tgt.getId(),
-            CoreAuthenticationTestUtils.getService(), result);
-        assertNotNull(st);
+        val tgt1 = centralAuthenticationService.createTicketGrantingTicket(result);
+        val st1 = centralAuthenticationService.grantServiceTicket(tgt1.getId(),
+            CoreAuthenticationTestUtils.getWebApplicationService(), result);
+        assertNotNull(st1);
+
+        val tgt2 = centralAuthenticationService.createTicketGrantingTicket(result);
+        val st2 = centralAuthenticationService.grantServiceTicket(tgt2.getId(),
+            CoreAuthenticationTestUtils.getWebApplicationService(), result);
+        assertNotNull(st2);
+        tgt2.markTicketExpired();
+        st2.markTicketExpired();
     }
 
     @Test

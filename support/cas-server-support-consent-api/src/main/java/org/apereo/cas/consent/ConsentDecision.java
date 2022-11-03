@@ -1,5 +1,7 @@
 package org.apereo.cas.consent;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -10,6 +12,7 @@ import javax.persistence.Lob;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -26,10 +29,11 @@ import java.time.temporal.ChronoUnit;
 @Getter
 @Setter
 public class ConsentDecision implements Serializable {
+    @Serial
     private static final long serialVersionUID = -3240292729509593433L;
-
     @Id
     @Transient
+    @JsonSerialize(using = ToStringSerializer.class)
     private long id;
 
     @Column(nullable = false)
@@ -53,7 +57,6 @@ public class ConsentDecision implements Serializable {
     @Lob
     @Column(name = "attributes", length = Integer.MAX_VALUE)
     private String attributes;
-
     public ConsentDecision() {
         this.id = System.currentTimeMillis();
     }

@@ -2,6 +2,7 @@ package org.apereo.cas.util.cache;
 
 import org.apereo.cas.util.PublisherIdentifier;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 
@@ -37,10 +38,11 @@ public class MappableDistributedCacheManager<K extends Serializable, V extends D
 
     @Override
     public Collection<V> getAll() {
-        return this.mapInstance.values();
+        return mapInstance.values();
     }
 
     @Override
+    @CanIgnoreReturnValue
     public DistributedCacheManager<K, V, PublisherIdentifier> set(final K key,
                                                                   final V item,
                                                                   final boolean publish) {
@@ -49,11 +51,17 @@ public class MappableDistributedCacheManager<K extends Serializable, V extends D
     }
 
     @Override
+    public void clear() {
+        this.mapInstance.clear();
+    }
+
+    @Override
     public boolean contains(final K key) {
         return this.mapInstance.containsKey(buildKey(key));
     }
 
     @Override
+    @CanIgnoreReturnValue
     public DistributedCacheManager<K, V, PublisherIdentifier> update(final K key, final V item,
                                                                      final boolean publish) {
         remove(key, item, publish);
@@ -62,6 +70,7 @@ public class MappableDistributedCacheManager<K extends Serializable, V extends D
     }
 
     @Override
+    @CanIgnoreReturnValue
     public DistributedCacheManager<K, V, PublisherIdentifier> remove(final K key, final V item,
                                                                      final boolean publish) {
         val cacheKey = buildKey(key);
@@ -74,6 +83,12 @@ public class MappableDistributedCacheManager<K extends Serializable, V extends D
         return getAll().stream().filter(filter).collect(Collectors.toList());
     }
 
+    /**
+     * Build key.
+     *
+     * @param key the key
+     * @return the string
+     */
     protected String buildKey(final K key) {
         return key.toString();
     }

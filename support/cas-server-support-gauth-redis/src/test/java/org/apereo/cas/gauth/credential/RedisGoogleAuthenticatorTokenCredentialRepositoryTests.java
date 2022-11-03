@@ -4,7 +4,7 @@ import org.apereo.cas.authentication.OneTimeTokenAccount;
 import org.apereo.cas.config.GoogleAuthenticatorRedisConfiguration;
 import org.apereo.cas.otp.repository.credentials.OneTimeTokenCredentialRepository;
 import org.apereo.cas.util.CollectionUtils;
-import org.apereo.cas.util.junit.EnabledIfPortOpen;
+import org.apereo.cas.util.junit.EnabledIfListeningOnPort;
 
 import lombok.Getter;
 import lombok.val;
@@ -35,12 +35,12 @@ import static org.junit.jupiter.api.Assertions.*;
     "cas.authn.mfa.gauth.redis.host=localhost",
     "cas.authn.mfa.gauth.redis.port=6379"
 })
-@EnableTransactionManagement(proxyTargetClass = true)
-@EnableAspectJAutoProxy(proxyTargetClass = true)
+@EnableTransactionManagement(proxyTargetClass = false)
+@EnableAspectJAutoProxy(proxyTargetClass = false)
 @EnableScheduling
 @Tag("Redis")
 @Getter
-@EnabledIfPortOpen(port = 6379)
+@EnabledIfListeningOnPort(port = 6379)
 public class RedisGoogleAuthenticatorTokenCredentialRepositoryTests extends BaseOneTimeTokenCredentialRepositoryTests {
     @Autowired
     @Qualifier("googleAuthenticatorAccountRegistry")
@@ -54,6 +54,9 @@ public class RedisGoogleAuthenticatorTokenCredentialRepositoryTests extends Base
     @Test
     public void verifySave() {
         val id = UUID.randomUUID().toString();
+        assertNull(registry.get(654321));
+        assertNull(registry.get(id, 654321));
+
         var toSave = OneTimeTokenAccount.builder()
             .username(id)
             .secretKey("secret")
@@ -84,6 +87,7 @@ public class RedisGoogleAuthenticatorTokenCredentialRepositoryTests extends Base
         assertEquals(0, registry.count());
     }
 
+    @Override
     @Test
     public void verifySaveAndUpdate() {
         val id = UUID.randomUUID().toString();

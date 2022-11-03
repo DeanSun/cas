@@ -38,8 +38,9 @@ public class CasProtocolThymeleafViewFactoryTests {
     @Test
     public void verifyOperation() {
         val factory = new CasProtocolThymeleafViewFactory(springTemplateEngine, thymeleafProperties);
-        val view = factory.create(applicationContext, "casLoginView");
+        val view = (CasThymeleafView) factory.create(applicationContext, "login/casLoginView");
         assertNotNull(view);
         assertNotNull(view.toString());
+        assertNotNull(view.getLocale());
     }
 }

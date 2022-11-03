@@ -7,11 +7,11 @@ import org.apereo.cas.ticket.TicketGrantingTicket;
 import org.apereo.cas.ticket.TicketGrantingTicketImpl;
 import org.apereo.cas.ticket.expiration.HardTimeoutExpirationPolicy;
 import org.apereo.cas.util.crypto.CipherExecutor;
+import org.apereo.cas.util.spring.DirectObjectProvider;
 
 import lombok.val;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -28,24 +28,21 @@ public class CachingTicketRegistryTests extends BaseTicketRegistryTests {
 
     @Override
     public TicketRegistry getNewTicketRegistry() {
-        return new CachingTicketRegistry(mock(LogoutManager.class));
+        return new CachingTicketRegistry(new DirectObjectProvider<>(mock(LogoutManager.class)));
     }
 
-    @Test
-    @Tag("DisableEncryption")
+    @RepeatedTest(1)
     public void verifyOtherConstructor() {
-        assertDoesNotThrow(new Executable() {
-            @Override
-            public void execute() {
-                new CachingTicketRegistry(CipherExecutor.noOp(), mock(LogoutManager.class));
-            }
+        assertDoesNotThrow(() -> {
+            new CachingTicketRegistry(CipherExecutor.noOp(),
+                new DirectObjectProvider<>(mock(LogoutManager.class)));
         });
     }
 
-    @Test
-    @Tag("DisableEncryption")
+    @RepeatedTest(1)
     public void verifyExpirationByTimeout() throws Exception {
-        val registry = new CachingTicketRegistry(CipherExecutor.noOp(), mock(LogoutManager.class));
+        val registry = new CachingTicketRegistry(CipherExecutor.noOp(),
+            new DirectObjectProvider<>(mock(LogoutManager.class)));
         val ticket = new TicketGrantingTicketImpl(TicketGrantingTicket.PREFIX + "-12346", RegisteredServiceTestUtils.getAuthentication(),
             new HardTimeoutExpirationPolicy(1));
         registry.addTicket(ticket);
@@ -53,10 +50,10 @@ public class CachingTicketRegistryTests extends BaseTicketRegistryTests {
         assertNull(registry.getTicket(ticket.getId()));
     }
 
-    @Test
-    @Tag("DisableEncryption")
+    @RepeatedTest(1)
     public void verifyExpirationExplicit() throws Exception {
-        val registry = new CachingTicketRegistry(CipherExecutor.noOp(), mock(LogoutManager.class));
+        val registry = new CachingTicketRegistry(CipherExecutor.noOp(),
+            new DirectObjectProvider<>(mock(LogoutManager.class)));
         val ticket = new MockTicketGrantingTicket("casuser");
         registry.addTicket(ticket);
         Thread.sleep(1000);

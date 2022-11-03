@@ -1,11 +1,13 @@
 package org.apereo.cas.authentication;
 
 import org.apereo.cas.authentication.credential.UsernamePasswordCredential;
+import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.config.CasCoreAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationHandlersConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationMetadataConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationPolicyConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationPrincipalConfiguration;
+import org.apereo.cas.config.CasCoreAuthenticationServiceSelectionStrategyConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationSupportConfiguration;
 import org.apereo.cas.config.CasCoreConfiguration;
 import org.apereo.cas.config.CasCoreHttpConfiguration;
@@ -20,24 +22,26 @@ import org.apereo.cas.config.CasCoreWebConfiguration;
 import org.apereo.cas.config.CasPersonDirectoryConfiguration;
 import org.apereo.cas.config.LdapAuthenticationConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
+import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
+import org.apereo.cas.util.spring.beans.BeanContainer;
 
 import lombok.val;
 import org.jooq.lambda.Unchecked;
 import org.jooq.lambda.UncheckedException;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 
 import javax.security.auth.login.FailedLoginException;
 import java.util.Arrays;
-import java.util.Collection;
 
-import static org.apereo.cas.util.junit.Assertions.assertThrowsWithRootCause;
+import static org.apereo.cas.util.junit.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit test for {@link LdapAuthenticationHandler}.
@@ -54,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreAuthenticationSupportConfiguration.class,
     CasCoreAuthenticationHandlersConfiguration.class,
     CasWebApplicationServiceFactoryConfiguration.class,
+    CasCoreAuthenticationServiceSelectionStrategyConfiguration.class,
     CasCoreHttpConfiguration.class,
     CasCoreUtilConfiguration.class,
     CasCoreTicketCatalogConfiguration.class,
@@ -69,26 +74,30 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreConfiguration.class,
     LdapAuthenticationConfiguration.class
 })
-@Tag("Ldap")
+@EnableConfigurationProperties(CasConfigurationProperties.class)
 public abstract class BaseLdapAuthenticationHandlerTests {
     @Autowired
     @Qualifier("ldapAuthenticationHandlers")
-    protected Collection<AuthenticationHandler> handler;
+    protected BeanContainer<AuthenticationHandler> ldapAuthenticationHandlers;
+
+    static String getFailurePassword() {
+        return "bad";
+    }
 
     @Test
     public void verifyAuthenticateFailure() {
-        assertNotEquals(handler.size(), 0);
+        assertNotEquals(0, ldapAuthenticationHandlers.size());
         assertThrowsWithRootCause(UncheckedException.class, FailedLoginException.class,
-            () -> this.handler.forEach(Unchecked.consumer(h -> h.authenticate(new UsernamePasswordCredential(getUsername(), getFailurePassword())))));
+            () -> ldapAuthenticationHandlers.toList()
+                .forEach(Unchecked.consumer(h -> h.authenticate(new UsernamePasswordCredential(getUsername(), getFailurePassword()), mock(Service.class)))));
     }
 
     @Test
     public void verifyAuthenticateSuccess() {
-        assertNotEquals(handler.size(), 0);
-
-        this.handler.forEach(Unchecked.consumer(h -> {
+        assertNotEquals(0, ldapAuthenticationHandlers.size());
+        ldapAuthenticationHandlers.toList().forEach(Unchecked.consumer(h -> {
             val credential = new UsernamePasswordCredential(getUsername(), getSuccessPassword());
-            val result = h.authenticate(credential);
+            val result = h.authenticate(credential, mock(Service.class));
             assertNotNull(result.getPrincipal());
             assertEquals(credential.getUsername(), result.getPrincipal().getId());
             val attributes = result.getPrincipal().getAttributes();
@@ -106,9 +115,5 @@ public abstract class BaseLdapAuthenticationHandlerTests {
 
     String getSuccessPassword() {
         return "password";
-    }
-
-    String getFailurePassword() {
-        return "bad";
     }
 }

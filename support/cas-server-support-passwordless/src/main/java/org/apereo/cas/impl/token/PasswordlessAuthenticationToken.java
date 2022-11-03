@@ -4,12 +4,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.experimental.SuperBuilder;
 import lombok.val;
 import org.springframework.data.annotation.Id;
 
@@ -17,6 +17,7 @@ import javax.persistence.Column;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -35,8 +36,9 @@ import java.time.ZonedDateTime;
 @NoArgsConstructor
 @EqualsAndHashCode
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
-@Builder
+@SuperBuilder
 public class PasswordlessAuthenticationToken implements Serializable {
+    @Serial
     private static final long serialVersionUID = 3810773120720229099L;
 
     @Id
@@ -53,6 +55,11 @@ public class PasswordlessAuthenticationToken implements Serializable {
     @Column(name = "EXP_DATE", length = Integer.MAX_VALUE, nullable = false)
     private ZonedDateTime expirationDate;
 
+    /**
+     * Is expired?
+     *
+     * @return true/false
+     */
     @JsonIgnore
     public boolean isExpired() {
         val now = ZonedDateTime.now(ZoneOffset.UTC);

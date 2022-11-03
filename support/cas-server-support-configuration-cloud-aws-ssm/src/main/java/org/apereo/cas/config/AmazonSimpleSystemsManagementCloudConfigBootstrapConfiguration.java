@@ -1,20 +1,21 @@
 package org.apereo.cas.config;
 
 import org.apereo.cas.aws.AmazonEnvironmentAwareClientBuilder;
+import org.apereo.cas.configuration.features.CasFeatureModule;
 import org.apereo.cas.util.LoggingUtils;
+import org.apereo.cas.util.spring.boot.ConditionalOnFeatureEnabled;
 
-import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
-import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
-import com.amazonaws.services.simplesystemsmanagement.model.GetParametersByPathRequest;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.cloud.bootstrap.config.PropertySourceLocator;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.env.PropertySource;
+import software.amazon.awssdk.services.ssm.SsmClient;
+import software.amazon.awssdk.services.ssm.model.GetParametersByPathRequest;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,9 +27,10 @@ import java.util.Properties;
  * @author Misagh Moayyed
  * @since 6.2.0
  */
-@Configuration(value = "amazonSecretsManagerCloudConfigBootstrapConfiguration", proxyBeanMethods = false)
 @Slf4j
 @Getter
+@ConditionalOnFeatureEnabled(feature = CasFeatureModule.FeatureCatalog.CasConfiguration, module = "aws-ssm")
+@AutoConfiguration
 public class AmazonSimpleSystemsManagementCloudConfigBootstrapConfiguration implements PropertySourceLocator {
     /**
      * Configuration prefix for amazon secrets manager.
@@ -40,7 +42,7 @@ public class AmazonSimpleSystemsManagementCloudConfigBootstrapConfiguration impl
         val props = new Properties();
         try {
             val builder = new AmazonEnvironmentAwareClientBuilder(CAS_CONFIGURATION_PREFIX, environment);
-            val client = builder.build(AWSSimpleSystemsManagementClientBuilder.standard(), AWSSimpleSystemsManagement.class);
+            val client = builder.build(SsmClient.builder(), SsmClient.class);
 
             val profiles = new ArrayList<String>();
             profiles.add(StringUtils.EMPTY);
@@ -50,17 +52,18 @@ public class AmazonSimpleSystemsManagementCloudConfigBootstrapConfiguration impl
                 var nextToken = (String) null;
                 do {
                     val prefix = String.format("/cas/%s", profile);
-                    val request = new GetParametersByPathRequest()
-                        .withPath(prefix)
-                        .withWithDecryption(Boolean.TRUE)
-                        .withNextToken(nextToken);
+                    val request = GetParametersByPathRequest.builder()
+                        .path(prefix)
+                        .withDecryption(Boolean.TRUE)
+                        .nextToken(nextToken)
+                        .build();
                     val result = client.getParametersByPath(request);
-                    nextToken = result.getNextToken();
-                    LOGGER.trace("Fetched [{}] parameters with next token as [{}}", result.getParameters().size(), result.getNextToken());
+                    nextToken = result.nextToken();
+                    LOGGER.trace("Fetched [{}] parameters with next token as [{}]", result.parameters().size(), result.nextToken());
 
-                    result.getParameters().forEach(p -> {
-                        val key = StringUtils.removeEnd(StringUtils.removeStart(p.getName(), prefix), "/");
-                        props.put(key, p.getValue());
+                    result.parameters().forEach(p -> {
+                        val key = StringUtils.removeEnd(StringUtils.removeStart(p.name(), prefix), "/");
+                        props.put(key, p.value());
                     });
                 } while (nextToken != null);
             });

@@ -12,6 +12,7 @@ import org.springframework.web.servlet.ThemeResolver;
 import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.ViewResolver;
 
+import javax.annotation.Nonnull;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -39,19 +40,22 @@ public class ThemeBasedViewResolver implements ViewResolver, Ordered {
     private int order = LOWEST_PRECEDENCE;
 
     @Override
-    public View resolveViewName(final String viewName, final Locale locale) {
-        val theme = Optional.of(RequestContextHolder.currentRequestAttributes())
-            .filter(ServletRequestAttributes.class::isInstance)
-            .map(ServletRequestAttributes.class::cast)
-            .map(ServletRequestAttributes::getRequest)
-            .map(themeResolver::resolveThemeName);
+    public View resolveViewName(
+        @Nonnull
+        final String viewName, @Nonnull
+        final Locale locale) {
         try {
+            val theme = Optional.of(RequestContextHolder.currentRequestAttributes())
+                .filter(ServletRequestAttributes.class::isInstance)
+                .map(ServletRequestAttributes.class::cast)
+                .map(ServletRequestAttributes::getRequest)
+                .map(themeResolver::resolveThemeName);
             val delegate = theme.map(this::getViewResolver);
             if (delegate.isPresent()) {
                 return delegate.get().resolveViewName(viewName, locale);
             }
         } catch (final Exception e) {
-            LOGGER.debug("error resolving view [{}] for theme [{}]", viewName, theme.orElse(null), e);
+            LOGGER.debug("error resolving view [{}] for theme", viewName, e);
         }
         return null;
     }

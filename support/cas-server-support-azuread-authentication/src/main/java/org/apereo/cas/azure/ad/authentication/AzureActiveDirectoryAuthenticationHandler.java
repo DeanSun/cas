@@ -6,9 +6,8 @@ import org.apereo.cas.authentication.handler.support.AbstractUsernamePasswordAut
 import org.apereo.cas.authentication.principal.PrincipalFactory;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.util.CollectionUtils;
+import org.apereo.cas.util.serialization.JacksonObjectMapperFactory;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import com.microsoft.aad.adal4j.AuthenticationContext;
@@ -41,10 +40,8 @@ import java.util.concurrent.Executors;
  */
 @Slf4j
 public class AzureActiveDirectoryAuthenticationHandler extends AbstractUsernamePasswordAuthenticationHandler {
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-        .findAndRegisterModules()
-        .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
-        .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    private static final ObjectMapper MAPPER = JacksonObjectMapperFactory.builder()
+        .singleValueAsArray(true).build().toObjectMapper();
 
     private final String loginUrl;
 
@@ -92,7 +89,7 @@ public class AzureActiveDirectoryAuthenticationHandler extends AbstractUsernameP
         try {
             service = Executors.newFixedThreadPool(1);
             val context = new AuthenticationContext(this.loginUrl, false, service);
-            LOGGER.debug("Acquiring token for resource [{}] and client id [{}} for user [{}]", this.resource, this.clientId, username);
+            LOGGER.debug("Acquiring token for resource [{}] and client id [{}] for user [{}]", this.resource, this.clientId, username);
             val future = context.acquireToken(this.resource, this.clientId, username, password, null);
             return future.get();
         } finally {
@@ -110,7 +107,7 @@ public class AzureActiveDirectoryAuthenticationHandler extends AbstractUsernameP
         try {
             val username = credential.getUsername();
             LOGGER.trace("Fetching token for [{}]", username);
-            val result = getAccessTokenFromUserCredentials(username, credential.getPassword());
+            val result = getAccessTokenFromUserCredentials(username, credential.toPassword());
             LOGGER.debug("Retrieved token [{}] for [{}]", result.getAccessToken(), username);
             val userInfo = getUserInfoFromGraph(result.getAccessToken());
             LOGGER.trace("Retrieved user info [{}]", userInfo);

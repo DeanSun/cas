@@ -1,16 +1,14 @@
 package org.apereo.cas.adaptors.x509.authentication;
 
+import org.apereo.cas.util.LoggingUtils;
 import org.apereo.cas.util.crypto.CertUtils;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.util.Objects;
@@ -27,14 +25,14 @@ import java.util.Objects;
  * In httpd, mod_headers is used to add the SSL information as HTTP headers. In
  * Tomcat, this valve is used to read the information from the HTTP headers and
  * insert it into the request.
- *
+ * <p>
  * <b>Note: Ensure that the headers are always set by httpd for all requests to
  * prevent a client spoofing SSL information by sending fake headers. </b>
  * In httpd.conf add the following:
- *
+ * <p>
  * &lt;pre&gt;
  * &lt;IfModule ssl_module&gt;
- *   RequestHeader set SSL_CLIENT_CERT "%{SSL_CLIENT_CERT}s"
+ * RequestHeader set SSL_CLIENT_CERT "%{SSL_CLIENT_CERT}s"
  * &lt;/IfModule&gt;
  * &lt;/pre&gt;
  *
@@ -43,34 +41,17 @@ import java.util.Objects;
  * @since 5.3.0
  */
 @Slf4j
-@Getter
-@RequiredArgsConstructor
-public class RequestHeaderX509CertificateExtractor implements X509CertificateExtractor {
-
-    private static final String X509_HEADER = "-----BEGIN CERTIFICATE-----";
-    private static final String X509_FOOTER = "-----END CERTIFICATE-----";
-
-    private final String sslClientCertHeader;
+public record RequestHeaderX509CertificateExtractor(String sslClientCertHeader) implements X509CertificateExtractor {
 
     /**
-     * Get certificate from header or return null.
-     * HTTPD mod_header writes "(null)" when the ssl variable is not filled
-     * so that is treated as if the header were not present or blank.
-     *
-     * @param request HTTP request object
-     * @return Base64 encoded certificate
+     * X509 Cert header.
      */
-    private String getCertFromHeader(final HttpServletRequest request) {
-        val certHeaderValue = request.getHeader(sslClientCertHeader);
-        if (StringUtils.isBlank(certHeaderValue)) {
-            return null;
-        }
+    public static final String X509_HEADER = "-----BEGIN CERTIFICATE-----";
 
-        if ("(null)".equalsIgnoreCase(certHeaderValue)) {
-            return null;
-        }
-        return StringUtils.trim(certHeaderValue);
-    }
+    /**
+     * X509 Cert footer.
+     */
+    public static final String X509_FOOTER = "-----END CERTIFICATE-----";
 
     /**
      * Extract base64 encoded certificate from header and convert to {@link X509Certificate}.
@@ -93,21 +74,44 @@ public class RequestHeaderX509CertificateExtractor implements X509CertificateExt
             return null;
         }
 
-        if (Objects.requireNonNull(certHeaderValue).length() < X509_HEADER.length()) {
+        if (Objects.requireNonNull(certHeaderValue).length() - X509_FOOTER.length() < X509_HEADER.length()) {
             LOGGER.debug("Header [{}] found but it is too short to parse. Header value: [{}]", sslClientCertHeader, certHeaderValue);
             return null;
         }
 
+        LOGGER.trace("Located value [{}] from header [{}]. Parsing...", certHeaderValue, sslClientCertHeader);
         val body = sanitizeCertificateBody(certHeaderValue);
-        try (InputStream input = new ByteArrayInputStream(body.getBytes(StandardCharsets.ISO_8859_1))) {
+        LOGGER.debug("Certificate body to parse is [{}]", body);
+
+        try (val input = new ByteArrayInputStream(body.getBytes(StandardCharsets.ISO_8859_1))) {
             val cert = CertUtils.readCertificate(input);
             LOGGER.debug("Certificate extracted from header [{}] with subject: [{}]", sslClientCertHeader, cert.getSubjectDN());
             return new X509Certificate[]{cert};
         } catch (final Exception e) {
-            LOGGER.warn("Error parsing the certificate in header: [{}] value: [{}] with error msg: [{}]", sslClientCertHeader, body, e.getMessage());
-            LOGGER.debug("Error parsing the certificate in header: [{}] value: [{}]", sslClientCertHeader, body, e);
+            LOGGER.debug("Could not parse certificate from header: [{}] with sanitized value: [{}]", sslClientCertHeader, body);
+            LoggingUtils.warn(LOGGER, e);
         }
         return null;
+    }
+
+    /**
+     * Get certificate from header or return null.
+     * HTTPD mod_header writes "(null)" when the ssl variable is not filled
+     * so that is treated as if the header were not present or blank.
+     *
+     * @param request HTTP request object
+     * @return Base64 encoded certificate
+     */
+    private String getCertFromHeader(final HttpServletRequest request) {
+        val certHeaderValue = request.getHeader(sslClientCertHeader);
+        if (StringUtils.isBlank(certHeaderValue)) {
+            return null;
+        }
+
+        if ("(null)".equalsIgnoreCase(certHeaderValue)) {
+            return null;
+        }
+        return StringUtils.trim(certHeaderValue);
     }
 
     private static String sanitizeCertificateBody(final String certHeaderValue) {

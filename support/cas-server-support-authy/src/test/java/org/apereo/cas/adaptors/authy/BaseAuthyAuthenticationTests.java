@@ -5,14 +5,17 @@ import org.apereo.cas.adaptors.authy.config.AuthyConfiguration.AuthyMultifactorT
 import org.apereo.cas.adaptors.authy.config.support.authentication.AuthyAuthenticationComponentSerializationConfiguration;
 import org.apereo.cas.adaptors.authy.config.support.authentication.AuthyAuthenticationEventExecutionPlanConfiguration;
 import org.apereo.cas.adaptors.authy.config.support.authentication.AuthyAuthenticationMultifactorProviderBypassConfiguration;
+import org.apereo.cas.audit.spi.config.CasCoreAuditConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationPrincipalConfiguration;
+import org.apereo.cas.config.CasCoreAuthenticationServiceSelectionStrategyConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationSupportConfiguration;
 import org.apereo.cas.config.CasCoreConfiguration;
 import org.apereo.cas.config.CasCoreHttpConfiguration;
 import org.apereo.cas.config.CasCoreMultifactorAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreNotificationsConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
+import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
 import org.apereo.cas.config.CasCoreTicketIdGeneratorsConfiguration;
 import org.apereo.cas.config.CasCoreTicketsConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
@@ -28,10 +31,10 @@ import org.apereo.cas.web.flow.config.CasCoreWebflowConfiguration;
 import org.apereo.cas.web.flow.config.CasMultifactorAuthenticationWebflowConfiguration;
 import org.apereo.cas.web.flow.config.CasWebflowContextConfiguration;
 
-import org.junit.jupiter.api.Tag;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.annotation.Import;
 
@@ -41,10 +44,10 @@ import org.springframework.context.annotation.Import;
  * @author Misagh Moayyed
  * @since 6.2.0
  */
-@Tag("MFA")
 public abstract class BaseAuthyAuthenticationTests {
     @ImportAutoConfiguration({
         RefreshAutoConfiguration.class,
+        WebMvcAutoConfiguration.class,
         AopAutoConfiguration.class
     })
     @SpringBootConfiguration
@@ -59,7 +62,9 @@ public abstract class BaseAuthyAuthenticationTests {
         CasCoreAuthenticationPrincipalConfiguration.class,
         CasCoreTicketsConfiguration.class,
         CasCoreTicketIdGeneratorsConfiguration.class,
+        CasCoreTicketCatalogConfiguration.class,
         CasWebApplicationServiceFactoryConfiguration.class,
+        CasCoreAuthenticationServiceSelectionStrategyConfiguration.class,
         CasCoreLogoutConfiguration.class,
         CasCookieConfiguration.class,
         CasCoreHttpConfiguration.class,
@@ -68,6 +73,7 @@ public abstract class BaseAuthyAuthenticationTests {
         CasCoreWebflowConfiguration.class,
         CasWebflowContextConfiguration.class,
         CasCoreUtilConfiguration.class,
+        CasCoreAuditConfiguration.class,
 
         MultifactorAuthnTrustConfiguration.class,
         MultifactorAuthnTrustedDeviceFingerprintConfiguration.class,

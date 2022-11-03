@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.3.0
  */
-@Tag("Webflow")
+@Tag("WebflowMfaActions")
 public class GoogleAuthenticatorPrepareLoginActionTests {
 
     @Test
@@ -35,7 +35,7 @@ public class GoogleAuthenticatorPrepareLoginActionTests {
         ExternalContextHolder.setExternalContext(context.getExternalContext());
 
         val props = new CasConfigurationProperties();
-        props.getAuthn().getMfa().getGauth().setMultipleDeviceRegistrationEnabled(true);
+        props.getAuthn().getMfa().getGauth().getCore().setMultipleDeviceRegistrationEnabled(true);
         val action = new GoogleAuthenticatorPrepareLoginAction(props);
         assertNull(action.execute(context));
         assertTrue(WebUtils.isGoogleAuthenticatorMultipleDeviceRegistrationEnabled(context));

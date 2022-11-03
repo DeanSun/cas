@@ -1,8 +1,7 @@
 package org.apereo.cas;
 
-import org.apereo.cas.util.junit.EnabledIfPortOpen;
+import org.apereo.cas.util.junit.EnabledIfListeningOnPort;
 
-import lombok.SneakyThrows;
 import lombok.val;
 import org.apereo.services.persondir.IPersonAttributeDaoFilter;
 import org.junit.jupiter.api.Tag;
@@ -32,10 +31,10 @@ import static org.junit.jupiter.api.Assertions.*;
     "cas.authn.attribute-repository.jdbc[0].password=password",
     "cas.authn.attribute-repository.jdbc[0].driver-class=org.postgresql.Driver",
     "cas.authn.attribute-repository.jdbc[0].url=jdbc:postgresql://localhost:5432/postgres",
-    "cas.authn.attribute-repository.jdbc[0].dialect=org.hibernate.dialect.PostgreSQL95Dialect",
+    "cas.authn.attribute-repository.jdbc[0].dialect=org.hibernate.dialect.PostgreSQL10Dialect",
     "cas.authn.attribute-repository.jdbc[0].ddl-auto=create-drop"
 })
-@EnabledIfPortOpen(port = 5432)
+@EnabledIfListeningOnPort(port = 5432)
 @Tag("Postgres")
 public class JdbcSingleRowAttributeRepositoryPostgresTests extends JdbcSingleRowAttributeRepositoryTests {
 
@@ -65,8 +64,7 @@ public class JdbcSingleRowAttributeRepositoryPostgresTests extends JdbcSingleRow
     }
 
     @Override
-    @SneakyThrows
-    public void prepareDatabaseTable(final Statement s) {
+    public void prepareDatabaseTable(final Statement s) throws Exception {
         s.execute("create table table_users (uid VARCHAR(255), locations TEXT[]);");
         s.execute("insert into table_users (uid, locations) values('casuser', '{\"usa\", \"uk\"}' );");
     }

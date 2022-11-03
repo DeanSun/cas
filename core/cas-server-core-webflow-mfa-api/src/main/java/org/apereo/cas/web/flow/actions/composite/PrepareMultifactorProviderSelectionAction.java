@@ -3,10 +3,10 @@ package org.apereo.cas.web.flow.actions.composite;
 import org.apereo.cas.authentication.ChainingMultifactorAuthenticationProvider;
 import org.apereo.cas.authentication.MultifactorAuthenticationProvider;
 import org.apereo.cas.services.RegisteredService;
+import org.apereo.cas.web.flow.actions.BaseCasWebflowAction;
 import org.apereo.cas.web.support.WebUtils;
 
 import lombok.val;
-import org.springframework.webflow.action.AbstractAction;
 import org.springframework.webflow.execution.Event;
 import org.springframework.webflow.execution.RequestContext;
 
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  * @author Misagh Moayyed
  * @since 6.1.0
  */
-public class PrepareMultifactorProviderSelectionAction extends AbstractAction {
+public class PrepareMultifactorProviderSelectionAction extends BaseCasWebflowAction {
     @Override
     protected Event doExecute(final RequestContext requestContext) {
         val attributes = requestContext.getCurrentEvent().getAttributes();

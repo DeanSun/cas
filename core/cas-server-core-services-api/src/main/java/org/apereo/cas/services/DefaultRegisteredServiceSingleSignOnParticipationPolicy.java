@@ -1,6 +1,7 @@
 package org.apereo.cas.services;
 
-import org.apereo.cas.ticket.TicketState;
+
+import org.apereo.cas.ticket.AuthenticationAwareTicket;
 import org.apereo.cas.util.model.TriStateBoolean;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -10,6 +11,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.experimental.Accessors;
+
+import java.io.Serial;
 
 /**
  * This is {@link DefaultRegisteredServiceSingleSignOnParticipationPolicy}.
@@ -23,14 +27,16 @@ import lombok.ToString;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Accessors(chain = true)
 @EqualsAndHashCode
 public class DefaultRegisteredServiceSingleSignOnParticipationPolicy implements RegisteredServiceSingleSignOnParticipationPolicy {
+    @Serial
     private static final long serialVersionUID = -1223944598337761319L;
 
     private TriStateBoolean createCookieOnRenewedAuthentication;
 
     @Override
-    public boolean shouldParticipateInSso(final TicketState ticketState) {
+    public boolean shouldParticipateInSso(final RegisteredService registeredService, final AuthenticationAwareTicket ticketState) {
         return true;
     }
 }

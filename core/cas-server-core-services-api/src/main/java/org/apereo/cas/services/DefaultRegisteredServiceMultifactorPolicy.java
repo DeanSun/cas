@@ -1,12 +1,16 @@
 package org.apereo.cas.services;
 
+import org.apereo.cas.configuration.model.support.mfa.BaseMultifactorAuthenticationProviderProperties.MultifactorAuthenticationProviderFailureModes;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.experimental.Accessors;
 
+import java.io.Serial;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -21,14 +25,16 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @EqualsAndHashCode
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@Accessors(chain = true)
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public class DefaultRegisteredServiceMultifactorPolicy implements RegisteredServiceMultifactorPolicy {
 
+    @Serial
     private static final long serialVersionUID = -3068390754996358337L;
 
     private Set<String> multifactorAuthenticationProviders = new LinkedHashSet<>(0);
 
-    private RegisteredServiceMultifactorPolicyFailureModes failureMode = RegisteredServiceMultifactorPolicyFailureModes.UNDEFINED;
+    private MultifactorAuthenticationProviderFailureModes failureMode = MultifactorAuthenticationProviderFailureModes.UNDEFINED;
 
     private String principalAttributeNameTrigger;
 
@@ -45,4 +51,6 @@ public class DefaultRegisteredServiceMultifactorPolicy implements RegisteredServ
     private String bypassPrincipalAttributeValue;
 
     private String script;
+
+    private boolean bypassIfMissingPrincipalAttribute;
 }

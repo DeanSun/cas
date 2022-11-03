@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * This is {@link AuthenticationEventExecutionPlan}.
@@ -19,11 +21,17 @@ import java.util.Set;
 public interface AuthenticationEventExecutionPlan {
 
     /**
+     * Default bean name.
+     */
+    String DEFAULT_BEAN_NAME = "authenticationEventExecutionPlan";
+
+    /**
      * Register authentication handler.
      *
      * @param handler the handler
+     * @return true/false
      */
-    void registerAuthenticationHandler(AuthenticationHandler handler);
+    boolean registerAuthenticationHandler(AuthenticationHandler handler);
 
     /**
      * Register authentication handlers.
@@ -102,8 +110,9 @@ public interface AuthenticationEventExecutionPlan {
      *
      * @param handler           the handler
      * @param principalResolver the principal resolver
+     * @return true if handler was able to successfully register itself, otherwise false.
      */
-    void registerAuthenticationHandlerWithPrincipalResolver(AuthenticationHandler handler, PrincipalResolver principalResolver);
+    boolean registerAuthenticationHandlerWithPrincipalResolver(AuthenticationHandler handler, PrincipalResolver principalResolver);
 
     /**
      * Register authentication handlers with principal resolver.
@@ -135,6 +144,16 @@ public interface AuthenticationEventExecutionPlan {
      * @return the authentication handlers
      */
     Set<AuthenticationHandler> getAuthenticationHandlers();
+
+    /**
+     * Gets authentication handlers by a filter.
+     *
+     * @param filter the filter
+     * @return the authentication handlers by
+     */
+    default Set<AuthenticationHandler> getAuthenticationHandlersBy(final Predicate<AuthenticationHandler> filter) {
+        return getAuthenticationHandlers().stream().filter(filter).collect(Collectors.toSet());
+    }
 
     /**
      * Gets authentication metadata populators.

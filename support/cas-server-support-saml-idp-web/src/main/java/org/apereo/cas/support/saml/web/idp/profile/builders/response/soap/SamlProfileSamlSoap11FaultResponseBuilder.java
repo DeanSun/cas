@@ -1,15 +1,14 @@
 package org.apereo.cas.support.saml.web.idp.profile.builders.response.soap;
 
-import org.apereo.cas.support.saml.SamlException;
 import org.apereo.cas.support.saml.SamlIdPConstants;
 import org.apereo.cas.support.saml.SamlIdPUtils;
-import org.apereo.cas.support.saml.services.SamlRegisteredService;
-import org.apereo.cas.support.saml.services.idp.metadata.SamlRegisteredServiceServiceProviderMetadataFacade;
+import org.apereo.cas.support.saml.SamlUtils;
+import org.apereo.cas.support.saml.web.idp.profile.builders.SamlProfileBuilderContext;
 import org.apereo.cas.support.saml.web.idp.profile.builders.response.SamlProfileSamlResponseBuilderConfigurationContext;
 
 import lombok.val;
-import org.opensaml.messaging.context.MessageContext;
-import org.opensaml.saml.saml2.core.RequestAbstractType;
+import org.apache.http.HttpStatus;
+import org.opensaml.soap.messaging.context.SOAP11Context;
 import org.opensaml.soap.soap11.Body;
 import org.opensaml.soap.soap11.Envelope;
 import org.opensaml.soap.soap11.Fault;
@@ -18,8 +17,8 @@ import org.opensaml.soap.soap11.FaultCode;
 import org.opensaml.soap.soap11.FaultString;
 import org.opensaml.soap.soap11.Header;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import java.io.Serial;
+import java.util.Objects;
 
 /**
  * The {@link SamlProfileSamlSoap11FaultResponseBuilder} is responsible for
@@ -29,50 +28,45 @@ import javax.servlet.http.HttpServletResponse;
  * @since 4.2
  */
 public class SamlProfileSamlSoap11FaultResponseBuilder extends SamlProfileSamlSoap11ResponseBuilder {
+    @Serial
     private static final long serialVersionUID = -1875903354216171261L;
 
-    public SamlProfileSamlSoap11FaultResponseBuilder(final SamlProfileSamlResponseBuilderConfigurationContext samlResponseBuilderConfigurationContext) {
-        super(samlResponseBuilderConfigurationContext);
+    public SamlProfileSamlSoap11FaultResponseBuilder(final SamlProfileSamlResponseBuilderConfigurationContext configurationContext) {
+        super(configurationContext);
     }
 
     @Override
-    public Envelope build(final RequestAbstractType authnRequest,
-                          final HttpServletRequest request,
-                          final HttpServletResponse response,
-                          final Object casAssertion,
-                          final SamlRegisteredService service,
-                          final SamlRegisteredServiceServiceProviderMetadataFacade adaptor,
-                          final String binding,
-                          final MessageContext messageContext) throws SamlException {
+    public Envelope build(final SamlProfileBuilderContext context) throws Exception {
 
-        val body = newSoapObject(Body.class);
-        val fault = newSoapObject(Fault.class);
+        val body = SamlUtils.newSoapObject(Body.class);
+        val fault = SamlUtils.newSoapObject(Fault.class);
 
-        val faultCode = newSoapObject(FaultCode.class);
+        val faultCode = SamlUtils.newSoapObject(FaultCode.class);
         faultCode.setValue(FaultCode.SERVER);
         fault.setCode(faultCode);
 
-        val faultActor = newSoapObject(FaultActor.class);
-        faultActor.setURI(SamlIdPUtils.getIssuerFromSamlObject(authnRequest));
+        val faultActor = SamlUtils.newSoapObject(FaultActor.class);
+        faultActor.setURI(SamlIdPUtils.getIssuerFromSamlObject(context.getSamlRequest()));
         fault.setActor(faultActor);
 
-        val faultString = newSoapObject(FaultString.class);
-        val error = request.getAttribute(SamlIdPConstants.REQUEST_ATTRIBUTE_ERROR);
+        val faultString = SamlUtils.newSoapObject(FaultString.class);
+        val error = context.getHttpRequest().getAttribute(SamlIdPConstants.REQUEST_ATTRIBUTE_ERROR);
         if (error != null) {
             faultString.setValue(error.toString());
         } else {
             faultString.setValue("SOAP failure");
         }
         fault.setMessage(faultString);
-
         body.getUnknownXMLObjects().add(fault);
         
-        val envelope = newSoapObject(Envelope.class);
-        val header = newSoapObject(Header.class);
+        val envelope = SamlUtils.newSoapObject(Envelope.class);
+        val header = SamlUtils.newSoapObject(Header.class);
         envelope.setHeader(header);
         envelope.setBody(body);
-        encodeFinalResponse(request, response, service, adaptor, envelope,
-            binding, authnRequest, casAssertion, messageContext);
+        val ctx = context.getMessageContext().getSubcontext(SOAP11Context.class, true);
+        Objects.requireNonNull(ctx).setHTTPResponseStatus(HttpStatus.SC_OK);
+        encodeFinalResponse(context, envelope);
+        context.getHttpRequest().setAttribute(FaultString.class.getSimpleName(), error);
         return envelope;
     }
 }

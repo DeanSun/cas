@@ -36,13 +36,13 @@ import static org.junit.jupiter.api.Assertions.*;
         "cas.google-analytics.cookie.attribute-value-pattern=^(faculty|staff).*"
     })
 @EnableConfigurationProperties(CasConfigurationProperties.class)
-@Tag("Webflow")
+@Tag("WebflowActions")
 public class CreateGoogleAnalyticsCookieActionTests {
     @Autowired
     private CasConfigurationProperties casProperties;
 
     @Autowired
-    @Qualifier("createGoogleAnalyticsCookieAction")
+    @Qualifier(CasWebflowConstants.ACTION_ID_GOOGLE_ANALYTICS_CREATE_COOKIE)
     private Action createGoogleAnalyticsCookieAction;
 
     @Test
